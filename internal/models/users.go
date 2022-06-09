@@ -28,8 +28,29 @@ type User struct {
 
 var format string = "2006-01-02"
 
+//insert_user inserts a User object into the database.  No checking.
 func insert_user(conn *pgx.Conn, user User) error {
 	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)"
 	_, err := conn.Exec(context.Background(), statement, user.Id, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined.Format(format), user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt.Format(format))
 	return err
+}
+
+//get_user gets a User object from the database if they exist.  Otherwise, it returns nil.
+func get_user(conn *pgx.Conn, handle string) (User, error) {
+	var user User
+	var err error
+	statement := "SELECT * FROM users WHERE handle=$1"
+	err = conn.QueryRow(context.Background(), statement, handle).Scan(&user.Id, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt)
+	return user, err
+}
+
+//user_exists checks if a user exists in the database.
+func user_exists(conn *pgx.Conn, handle string) bool {
+	var exists bool
+	statement := "SELECT EXISTS(SELECT 1 FROM users WHERE handle=$1)"
+	err := conn.QueryRow(context.Background(), statement, handle).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
 }

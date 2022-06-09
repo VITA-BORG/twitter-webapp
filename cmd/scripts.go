@@ -2,11 +2,16 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
+
+var keywords []string = []string{"official", "school", "institution", "program", "project", "institute",
+	"faculty", "company", "team", "center", "conference", "organization", "we"}
 
 //scrapeUser scrapes a user's twitter profile and returns a models.User struct.
 func scrapeUser(app *application, handle string) models.User {
@@ -28,7 +33,7 @@ func scrapeUser(app *application, handle string) models.User {
 		Id:          uid,
 		ProfileName: profile.Name,
 		Handle:      profile.Username,
-		Gender:      "X",
+		Gender:      guess_gender(profile.Biography),
 		IsPerson:    true,
 		Joined:      profile.Joined,
 		Bio:         profile.Biography,
@@ -43,4 +48,38 @@ func scrapeUser(app *application, handle string) models.User {
 		CollectedAt: &currTime,
 	}
 
+}
+
+//guess_gender guesses the user's gender by looking for personal pronouns.
+//If no personal pronouns are found, an empty string is returned
+func guess_gender(bio string) string {
+	lowered := strings.ToLower(bio)
+	matched, _ := regexp.MatchString(`/?they/?`, lowered)
+	if matched {
+		return "X"
+	}
+	matched, _ = regexp.MatchString(`/?she/?`, lowered)
+	if matched {
+		return "F"
+	}
+	matched, _ = regexp.MatchString(`/?he/?`, lowered)
+	if matched {
+		return "M"
+	}
+
+	return ""
+}
+
+//is_person checks if a user is a person by looking for keywords that indicate "non-person" status in their bio.
+//If no keywords are found, true is returned.
+func is_person(bio string) bool {
+	words := strings.Split(strings.ToLower(bio), " ")
+	for _, curr := range words {
+		for _, keyword := range keywords {
+			if keyword == curr {
+				return false
+			}
+		}
+	}
+	return true
 }

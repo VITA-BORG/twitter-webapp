@@ -56,7 +56,7 @@ func main() {
 	}
 
 	currUser := scrapeUser(app, "NyameDev")
-	infoLog.Println(currUser)
+	infoLog.Println(currUser.Gender)
 
 	// srv := &http.Server{
 	// 	Addr:     *addr,
