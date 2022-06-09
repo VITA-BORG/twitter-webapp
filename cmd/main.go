@@ -57,6 +57,9 @@ func main() {
 
 	currUser := scrapeUser(app, "NyameDev")
 	infoLog.Println(currUser.Gender)
+	infoLog.Println(currUser.IsPerson)
+
+	infoLog.Println(scrapeTweets(app, "NyameDev"))
 
 	// srv := &http.Server{
 	// 	Addr:     *addr,
