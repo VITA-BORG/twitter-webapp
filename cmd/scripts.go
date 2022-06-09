@@ -14,7 +14,7 @@ var keywords []string = []string{"official", "school", "institution", "program",
 	"faculty", "company", "team", "center", "conference", "organization", "we"}
 
 //scrapeUser scrapes a user's twitter profile and returns a models.User struct.
-func scrapeUser(app *application, handle string) models.User {
+func scrapeUser(app *application, handle string) *models.User {
 	profile, err := app.scraper.GetProfile(handle)
 	if err != nil {
 		app.errorLog.Println(err)
@@ -29,12 +29,12 @@ func scrapeUser(app *application, handle string) models.User {
 	fmt.Printf("%+v\n", profile)
 
 	//TODO: gender script, IsPerson script, time.Format
-	return models.User{
+	return &models.User{
 		Id:          uid,
 		ProfileName: profile.Name,
 		Handle:      profile.Username,
 		Gender:      guess_gender(profile.Biography),
-		IsPerson:    true,
+		IsPerson:    is_person(profile.Biography),
 		Joined:      profile.Joined,
 		Bio:         profile.Biography,
 		Location:    profile.Location,
