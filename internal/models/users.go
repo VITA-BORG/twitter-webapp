@@ -28,15 +28,19 @@ type User struct {
 
 var format string = "2006-01-02"
 
-//insertUser inserts a User object into the database.  No checking.
-func insertUser(conn *pgx.Conn, user User) error {
+//InsertUser inserts a User object into the database.  No checking.
+func InsertUser(conn *pgx.Conn, user User) error {
+	var gender string
+	if user.Gender != "" {
+		gender = user.Gender
+	}
 	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)"
-	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined.Format(format), user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt.Format(format))
+	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, gender, user.IsPerson, user.Joined.Format(format), user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt.Format(format))
 	return err
 }
 
-//getUser gets a User object from the database if they exist.  Otherwise, it returns nil.
-func getUser(conn *pgx.Conn, handle string) (User, error) {
+//GetUserByHandle returns a User object from the database if they exist.  Otherwise, it returns nil.
+func GetUserByHandle(conn *pgx.Conn, handle string) (User, error) {
 	var user User
 	var err error
 	statement := "SELECT * FROM users WHERE handle=$1"
@@ -44,8 +48,8 @@ func getUser(conn *pgx.Conn, handle string) (User, error) {
 	return user, err
 }
 
-//userExists checks if a user exists in the database.
-func userExists(conn *pgx.Conn, handle string) bool {
+//UserExists checks if a user exists in the database.
+func UserExists(conn *pgx.Conn, handle string) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM users WHERE handle=$1)"
 	err := conn.QueryRow(context.Background(), statement, handle).Scan(&exists)

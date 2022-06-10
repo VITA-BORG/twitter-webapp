@@ -52,7 +52,9 @@ func scrapeUser(app *application, handle string) *models.User {
 }
 
 //ScrapeTweets scrapes a user's tweets and returns a slice of models.Tweet structs.
-//TODO: add scrape for tweets that are replies to other tweets
+//TODO: add scrape for tweets that are replies to other tweets (replies table)
+//TODOL : add scrape for users that are mentioned in tweets (mentions table)
+//TODO: add ability to scrape starting from date
 func scrapeTweets(app *application, handle string) []*models.Tweet {
 	tweets := app.scraper.GetTweets(context.Background(), handle, 10)
 	currTime := time.Now()
