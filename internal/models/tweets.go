@@ -30,12 +30,12 @@ func InsertTweet(conn *pgx.Conn, tweet Tweet) error {
 }
 
 //GetTweet returns a Tweet object from the database if they exist.  Otherwise, it returns nil.
-func GetTweet(conn *pgx.Conn, ID int64) (Tweet, error) {
+func GetTweet(conn *pgx.Conn, ID int64) (*Tweet, error) {
 	var tweet Tweet
 	var err error
 	statement := "SELECT * FROM tweets WHERE id=$1"
 	err = conn.QueryRow(context.Background(), statement, ID).Scan(&tweet.ID, &tweet.ConversationID, &tweet.Text, &tweet.PostedAt, &tweet.Url, &tweet.UserID, &tweet.IsRetweet, &tweet.RetweetID, &tweet.Likes, &tweet.Retweets, &tweet.Replies, &tweet.CollectedAt)
-	return tweet, err
+	return &tweet, err
 }
 
 //TweetExists checks if a tweet exists in the database.

@@ -25,21 +25,21 @@ func InsertSchool(conn *pgx.Conn, school School) error {
 }
 
 //GetSchoolByID returns a School object from the database if they exist.  Otherwise, it returns nil.
-func GetSchoolByID(conn *pgx.Conn, ID int64) (School, error) {
+func GetSchoolByID(conn *pgx.Conn, ID int64) (*School, error) {
 	var school School
 	var err error
 	statement := "SELECT * FROM schools WHERE id=$1"
 	err = conn.QueryRow(context.Background(), statement, ID).Scan(&school.ID, &school.Name, &school.TopRated, &school.Public, &school.City, &school.State, &school.Country, &school.User_ID)
-	return school, err
+	return &school, err
 }
 
 //GetSchoolByName returns a School object from the database if they exist.  Otherwise, it returns nil.
-func GetSchoolByName(conn *pgx.Conn, name string) (School, error) {
+func GetSchoolByName(conn *pgx.Conn, name string) (*School, error) {
 	var school School
 	var err error
 	statement := "SELECT * FROM schools WHERE name=$1"
 	err = conn.QueryRow(context.Background(), statement, name).Scan(&school.ID, &school.Name, &school.TopRated, &school.Public, &school.City, &school.State, &school.Country, &school.User_ID)
-	return school, err
+	return &school, err
 }
 
 //SchoolExists checks if a school exists in the database.
