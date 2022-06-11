@@ -93,5 +93,59 @@ func CreateTables(conn *pgx.Conn) error {
 	if err != nil {
 		return err
 	}
+
+	//Creates replies table
+	statement = `create table replies(
+		id serial primary key,
+        tweet_id bigint references tweets(id) ON DELETE CASCADE,
+        user_replied_to_id bigint references users(id)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	//Creates mentions table
+	statement = `create table mentions(
+		id serial primary key,
+        tweet_id bigint references tweets(id) ON DELETE CASCADE,
+        user_id bigint references users(id)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	//Creates bio_tags table
+	statement = `create table bio_tags(
+		id serial primary key,
+        user_id bigint references users(id),
+        mentioned_user_id bigint references users(id),
+        collected_at timestamp`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	//Creates hashtags table
+	statement = `create table hashtags(
+		id serial primary key,
+        tag varchar(512),
+        tweet_id bigint references tweets(id) ON DELETE CASCADE`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	//Creates follows table
+	statement = `create table follows(
+		id serial primary key,
+        follower_id bigint references users(id),
+        followee_id bigint references users(id),
+        created_at timestamp,
+        collected_at timestamp`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
