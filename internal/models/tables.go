@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 
 	pgx "github.com/jackc/pgx/v4"
 )
@@ -10,9 +11,10 @@ var tables = []string{"users", "tweets", "schools", "students", "replies", "ment
 
 //ResetTables resets all tables in the database.  Only use when testing or when you want to start from scratch.
 func ResetTables(conn *pgx.Conn) error {
-	statement := "DROP TABLE IF EXISTS $1 CASCADE"
+	var statement string
 	for _, table := range tables {
-		_, err := conn.Exec(context.Background(), statement, table)
+		statement = fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table)
+		_, err := conn.Exec(context.Background(), statement)
 		if err != nil {
 			return err
 		}
@@ -52,7 +54,8 @@ func CreateTables(conn *pgx.Conn) error {
         media int,
         following int,
         followers int,
-        collected_at timestamp`
+        collected_at timestamp
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -72,7 +75,7 @@ func CreateTables(conn *pgx.Conn) error {
         retweets int,
         replies int,
         collected_at timestamp
-		`
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -88,7 +91,7 @@ func CreateTables(conn *pgx.Conn) error {
         state_province varchar(4),
         country varchar(4),
         user_id bigint references users(id)
-		`
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -98,7 +101,8 @@ func CreateTables(conn *pgx.Conn) error {
 	statement = `create table replies(
 		id serial primary key,
         tweet_id bigint references tweets(id) ON DELETE CASCADE,
-        user_replied_to_id bigint references users(id)`
+        user_replied_to_id bigint references users(id)
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -108,7 +112,8 @@ func CreateTables(conn *pgx.Conn) error {
 	statement = `create table mentions(
 		id serial primary key,
         tweet_id bigint references tweets(id) ON DELETE CASCADE,
-        user_id bigint references users(id)`
+        user_id bigint references users(id)
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -119,7 +124,8 @@ func CreateTables(conn *pgx.Conn) error {
 		id serial primary key,
         user_id bigint references users(id),
         mentioned_user_id bigint references users(id),
-        collected_at timestamp`
+        collected_at timestamp
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -129,7 +135,8 @@ func CreateTables(conn *pgx.Conn) error {
 	statement = `create table hashtags(
 		id serial primary key,
         tag varchar(512),
-        tweet_id bigint references tweets(id) ON DELETE CASCADE`
+        tweet_id bigint references tweets(id) ON DELETE CASCADE
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err
@@ -141,7 +148,8 @@ func CreateTables(conn *pgx.Conn) error {
         follower_id bigint references users(id),
         followee_id bigint references users(id),
         created_at timestamp,
-        collected_at timestamp`
+        collected_at timestamp
+		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
 		return err

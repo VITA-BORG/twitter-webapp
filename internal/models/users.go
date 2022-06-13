@@ -32,10 +32,10 @@ var format string = "2006-01-02"
 func InsertUser(conn *pgx.Conn, user User) error {
 	var gender *string = nil
 	if user.Gender != "" {
-		*gender = user.Gender
+		gender = &user.Gender
 	}
 	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)"
-	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, gender, user.IsPerson, user.Joined.Format(format), user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt.Format(format))
+	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt)
 	return err
 }
 

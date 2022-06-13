@@ -11,6 +11,7 @@ import (
 	pgx "github.com/jackc/pgx/v4"
 	godotenv "github.com/joho/godotenv"
 	twitterscraper "github.com/n0madic/twitter-scraper"
+	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
 type application struct {
@@ -55,11 +56,20 @@ func main() {
 		scraper:    *twitterscraper.New(),
 	}
 
+	err = models.ResetTables(app.connection)
+	if err != nil {
+		errLog.Fatal(err)
+	}
+	err = models.CreateTables(app.connection)
+	if err != nil {
+		errLog.Fatal(err)
+	}
+
 	currUser := scrapeUser(app, "NyameDev")
 	infoLog.Println(currUser.Gender)
 	infoLog.Println(currUser.IsPerson)
 
-	infoLog.Println(scrapeTweets(app, "NyameDev"))
+	models.InsertUser(app.connection, *currUser)
 
 	// srv := &http.Server{
 	// 	Addr:     *addr,
