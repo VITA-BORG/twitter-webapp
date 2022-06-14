@@ -195,8 +195,10 @@ func getMentions(text string) []string {
 	mentions := []string{}
 	words := strings.Split(strings.ToLower(text), " ")
 	//removes the retweeted's handle from the list of mentions
-	if words[0] == "rt" {
-		words = words[2:]
+	if len(words) > 1 {
+		if words[0] == "rt" {
+			words = words[2:]
+		}
 	}
 
 	for _, curr := range words {
