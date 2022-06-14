@@ -9,8 +9,8 @@ import (
 
 var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows"}
 
-//ResetTables resets all tables in the database.  Only use when testing or when you want to start from scratch.
-func ResetTables(conn *pgx.Conn) error {
+//DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
+func DeleteTables(conn *pgx.Conn) error {
 	var statement string
 	for _, table := range tables {
 		statement = fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table)

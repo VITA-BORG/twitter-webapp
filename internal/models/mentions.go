@@ -27,3 +27,14 @@ func GetMentionByTID(conn *pgx.Conn, ID int64) (Mention, error) {
 	err = conn.QueryRow(context.Background(), statement, ID).Scan(&mention.TweetID, &mention.UserID)
 	return mention, err
 }
+
+//MentionExists checks if a mention exists in the database.
+func MentionExists(conn *pgx.Conn, mention Mention) bool {
+	var exists bool
+	statement := "SELECT EXISTS(SELECT 1 FROM mentions WHERE tweet_id=$1 AND user_id=$2)"
+	err := conn.QueryRow(context.Background(), statement, mention.TweetID, mention.UserID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
