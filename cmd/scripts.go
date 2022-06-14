@@ -129,26 +129,6 @@ func scrapeTweets(app *application, handle string, from time.Time) []*models.Twe
 				}
 			}
 
-			//TODO Scrapes all users mentioned in a tweet and adds them to the users and mentions tables.
-			//TODO Parralelize
-			// hasMentions, _ := regexp.MatchString("@", tweet.Text)
-			// if hasMentions {
-			// 	mentions := getMentions(tweet.Text)
-			// 	for _, mention := range mentions {
-			// 		app.infoLog.Printf("Scraped mention %s", mention)
-			// 		//checks to make sure user doesn't already exist before adding
-			// 		if !models.UserExists(app.connection, mention) {
-			// 			currUser := scrapeUser(app, mention)
-			// 			err = models.InsertUser(app.connection, *currUser)
-			// 			if err != nil {
-			// 				app.errorLog.Println(err)
-			// 			}
-			// 		}
-
-			// 		//checks to make sure mention doesn't already exist before adding
-			// 	}
-			// }
-
 			//Creates models.tweet struct
 			toAdd := &models.Tweet{
 				ID:             tweetID,
@@ -230,4 +210,51 @@ func getMentions(bio string) []string {
 		}
 	}
 	return mentions
+}
+
+//scrapeMentions scrapes the users mentioned in a tweet, adds them to users table, and adds the tweet to the mentions table.
+//TODO Parralelize
+func scrapeMentions(app *application, tweets []*models.Tweet) error {
+
+	re := regexp.MustCompile("@")
+
+	for _, tweet := range tweets {
+		if re.MatchString(tweet.Text) {
+			var currUser *models.User
+			var err error
+			mentions := getMentions(tweet.Text)
+			for _, mention := range mentions {
+				app.infoLog.Printf("Scraped mention %s", mention)
+				//checks to make sure user doesn't already exist before adding
+				if !models.UserExists(app.connection, mention) {
+					currUser, err = scrapeUser(app, mention)
+					if err != nil {
+						app.errorLog.Println("Error scraping user: ", err)
+						app.errorLog.Println(err)
+					}
+					err = models.InsertUser(app.connection, *currUser)
+					if err != nil {
+						app.errorLog.Println(err)
+					}
+				}
+
+				//checks to make sure User was successfully scraped before adding to mentions table
+				if currUser != nil {
+					//Creates models.Mention struct
+					toInsert := models.Mention{
+						UserID:  currUser.ID,
+						TweetID: tweet.ID,
+					}
+					//checks to make sure mention doesn't already exist before adding
+					if !models.MentionExists(app.connection, toInsert) {
+						err = models.InsertMention(app.connection, toInsert)
+						if err != nil {
+							app.errorLog.Println(err)
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
