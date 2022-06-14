@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,7 +44,7 @@ func scrapeUser(app *application, handle string) (*models.User, error) {
 	}
 	currTime := time.Now()
 
-	fmt.Printf("%+v\n", profile)
+	//app.infoLog.Printf("%+v\n", profile)
 
 	return &models.User{
 		ID:          uid,
@@ -69,8 +68,7 @@ func scrapeUser(app *application, handle string) (*models.User, error) {
 }
 
 //ScrapeTweets scrapes a user's tweets and returns a slice of models.Tweet structs.
-//TODO: add scrape for tweets that are replies to other tweets (replies table)
-//TODO: add scrape for users that are mentioned in tweets (mentions table)
+//Note: Some retweets may be shortened.
 func scrapeTweets(app *application, handle string, from time.Time) []*models.Tweet {
 	cursor := ""
 	var tweets []*twitterscraper.Tweet
@@ -193,9 +191,14 @@ func isPerson(bio string) bool {
 }
 
 //getMentions returns a slice of strings of the handles of users mentioned in a tweet.
-func getMentions(bio string) []string {
+func getMentions(text string) []string {
 	mentions := []string{}
-	words := strings.Split(strings.ToLower(bio), " ")
+	words := strings.Split(strings.ToLower(text), " ")
+	//removes the retweeted's handle from the list of mentions
+	if words[0] == "rt" {
+		words = words[2:]
+	}
+
 	for _, curr := range words {
 		if strings.HasPrefix(curr, "@") {
 			curr = strings.TrimPrefix(curr, "@")
@@ -212,13 +215,28 @@ func getMentions(bio string) []string {
 	return mentions
 }
 
-//scrapeMentions scrapes the users mentioned in a tweet, adds them to users table, and adds the tweet to the mentions table.
+//scrapeMentions scrapes the users mentioned in a tweet
+//returns a slice of models.user structs of users mentioned in the tweet that do not exist in the databas
+//and a slice of models.mention structs of mentions that do not exist in the database
+//Skips mentions in retweets by default.
 //TODO Parralelize
-func scrapeMentions(app *application, tweets []*models.Tweet) error {
+func scrapeMentions(app *application, tweets []*models.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
+
+	//By default, retweets are skipped
+	scrapeRT := false
+	if len(scrapeRetweets) > 0 {
+		scrapeRT = scrapeRetweets[0]
+	}
+
+	var userSlice []*models.User
+	var mentionSlice []*models.Mention
 
 	re := regexp.MustCompile("@")
 
 	for _, tweet := range tweets {
+		if tweet.IsRetweet && !scrapeRT {
+			continue
+		}
 		if re.MatchString(tweet.Text) {
 			var currUser *models.User
 			var err error
@@ -231,30 +249,22 @@ func scrapeMentions(app *application, tweets []*models.Tweet) error {
 					if err != nil {
 						app.errorLog.Println("Error scraping user: ", err)
 						app.errorLog.Println(err)
-					}
-					err = models.InsertUser(app.connection, *currUser)
-					if err != nil {
-						app.errorLog.Println(err)
-					}
-				}
-
-				//checks to make sure User was successfully scraped before adding to mentions table
-				if currUser != nil {
-					//Creates models.Mention struct
-					toInsert := models.Mention{
-						UserID:  currUser.ID,
-						TweetID: tweet.ID,
-					}
-					//checks to make sure mention doesn't already exist before adding
-					if !models.MentionExists(app.connection, toInsert) {
-						err = models.InsertMention(app.connection, toInsert)
-						if err != nil {
-							app.errorLog.Println(err)
+					} else {
+						//Only user mention if user was successfully scraped
+						userSlice = append(userSlice, currUser)
+						toInsert := models.Mention{
+							UserID:  currUser.ID,
+							TweetID: tweet.ID,
+						}
+						//Only adds mention if user was successfully scraped
+						//checks to make sure mention doesn't already exist before adding
+						if !models.MentionExists(app.connection, toInsert) {
+							mentionSlice = append(mentionSlice, &toInsert)
 						}
 					}
 				}
 			}
 		}
 	}
-	return nil
+	return userSlice, mentionSlice
 }

@@ -57,17 +57,24 @@ func main() {
 		scraper:    *twitterscraper.New(),
 	}
 
-	currUser, err := scrapeUser(app, "NyameDev")
+	currUser, err := scrapeUser(app, "nyamedev")
 	if err != nil {
-		errLog.Printf("Could not scrape user: %s, Error: %s", "NyameDev", err)
+		errLog.Printf("Could not scrape user: %s, Error: %s", "nyamedev", err)
 	}
 	infoLog.Println(currUser.Gender)
 	infoLog.Println(currUser.IsPerson)
 
-	tweets := scrapeTweets(app, currUser.Handle, time.Date(2022, 1, 30, 0, 0, 0, 0, time.Local))
+	tweets := scrapeTweets(app, currUser.Handle, time.Date(2022, 4, 12, 0, 0, 0, 0, time.Local))
+	mentionedUsers, mentions := scrapeMentions(app, tweets, true)
 
-	app.infoLog.Printf("%+v\n", tweets)
-
+	for _, tweet := range tweets {
+		app.infoLog.Printf("%s\n", tweet.Text)
+	}
+	app.infoLog.Printf("%d tweets scraped", len(tweets))
+	app.infoLog.Printf("%d users mentioned", len(mentionedUsers))
+	app.infoLog.Printf("%+v\n", mentionedUsers)
+	app.infoLog.Printf("%d tweets with mentions", len(mentions))
+	app.infoLog.Printf("%+v\n", mentions)
 	// srv := &http.Server{
 	// 	Addr:     *addr,
 	// 	ErrorLog: errLog,
