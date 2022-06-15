@@ -16,7 +16,7 @@ var keywords []string = []string{"official", "school", "institution", "program",
 //TODO: edit this to use goroutines and channels for different parts of the scrape
 //Every table could have a go routine that takes information through channels
 
-func resetTables(app *application) error {
+func (app *application) resetTables() error {
 	err := models.DeleteTables(app.connection)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func resetTables(app *application) error {
 
 //scrapeUser scrapes a user's twitter profile and returns a models.User struct.
 //TODO: add error checking for handles that don't exist
-func scrapeUser(app *application, handle string) (*models.User, error) {
+func (app *application) scrapeUser(handle string) (*models.User, error) {
 	profile, err := app.scraper.GetProfile(handle)
 	if err != nil {
 		app.errorLog.Println(err)
@@ -69,7 +69,7 @@ func scrapeUser(app *application, handle string) (*models.User, error) {
 
 //ScrapeTweets scrapes a user's tweets and returns a slice of models.Tweet structs.
 //Note: Some retweets may be shortened.
-func scrapeTweets(app *application, handle string, from time.Time) []*models.Tweet {
+func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tweet {
 	cursor := ""
 	var tweets []*twitterscraper.Tweet
 	var err error
@@ -222,7 +222,7 @@ func getMentions(text string) []string {
 //and a slice of models.mention structs of mentions that do not exist in the database
 //Skips mentions in retweets by default.
 //TODO Parralelize
-func scrapeMentions(app *application, tweets []*models.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
+func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
 
 	//By default, retweets are skipped
 	scrapeRT := false
@@ -247,7 +247,7 @@ func scrapeMentions(app *application, tweets []*models.Tweet, scrapeRetweets ...
 				app.infoLog.Printf("Scraped mention %s", mention)
 				//checks to make sure user doesn't already exist before adding
 				if !models.UserExists(app.connection, mention) {
-					currUser, err = scrapeUser(app, mention)
+					currUser, err = app.scrapeUser(mention)
 					if err != nil {
 						app.errorLog.Println("Error scraping user: ", err)
 						app.errorLog.Println(err)
@@ -270,3 +270,8 @@ func scrapeMentions(app *application, tweets []*models.Tweet, scrapeRetweets ...
 	}
 	return userSlice, mentionSlice
 }
+
+//scrapeReplyChain scrapes the users and tweets in a reply chain
+//returns a slice of models.user structs of users replied to that do not exist in the database
+//and a slice of models.tweet structs of tweets in the reply chain that do not exist in the database
+//and a slice of models.reply structs of tweets in the reply chain that do not exist in the database
