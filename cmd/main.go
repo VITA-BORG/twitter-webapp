@@ -25,7 +25,7 @@ type application struct {
 
 func main() {
 	//Sets up Logs
-	//TODO: allow change via command line flags
+	//TODO: allow changing logs via command line flags
 	infoLog := log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime)
 	errLog := log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
@@ -75,6 +75,7 @@ func main() {
 
 		tweets := app.scrapeTweets(currUser.Handle, time.Date(2022, 4, 12, 0, 0, 0, 0, time.Local))
 		mentionedUsers, mentions := app.scrapeMentions(tweets, true)
+		replies := getReplies(tweets)
 
 		for _, tweet := range tweets {
 			app.infoLog.Printf("%s\n", tweet.Text)
@@ -84,6 +85,8 @@ func main() {
 		app.infoLog.Printf("%+v\n", mentionedUsers)
 		app.infoLog.Printf("%d tweets with mentions", len(mentions))
 		app.infoLog.Printf("%+v\n", mentions)
+		app.infoLog.Printf("%d replies", len(replies))
+		app.infoLog.Printf("%+v\n", getBioTags(currUser.Bio))
 	}
 
 	app.infoLog.Printf("Starting server on %s...", *addr)

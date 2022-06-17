@@ -217,6 +217,22 @@ func getMentions(text string) []string {
 	return mentions
 }
 
+//getBioTags scrapes the handles of users mentioned in a biography
+func getBioTags(bio string) []string {
+	tags := []string{}
+	//removes all non-alphanumeric characters
+	reg := regexp.MustCompile(`[^a-zA-Z0-9_]`)
+	words := strings.Split(strings.ToLower(bio), " ")
+	for _, curr := range words {
+		if strings.HasPrefix(curr, "@") {
+			curr = reg.ReplaceAllString(curr, "")
+			tags = append(tags, curr)
+		}
+	}
+	return tags
+
+}
+
 //scrapeMentions scrapes the users mentioned in a tweet
 //returns a slice of models.user structs of users mentioned in the tweet that do not exist in the databas
 //and a slice of models.mention structs of mentions that do not exist in the database
@@ -271,7 +287,22 @@ func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ..
 	return userSlice, mentionSlice
 }
 
-//scrapeReplyChain scrapes the users and tweets in a reply chain
-//returns a slice of models.user structs of users replied to that do not exist in the database
-//and a slice of models.tweet structs of tweets in the reply chain that do not exist in the database
-//and a slice of models.reply structs of tweets in the reply chain that do not exist in the database
+//isReply checks if a tweet is a reply to another tweet
+func isReply(tweet *models.Tweet) bool {
+	return tweet.ID != tweet.ConversationID
+}
+
+//getReplies returns a slice of models.reply structs of tweets that are replies
+func getReplies(tweets []*models.Tweet) []*models.Reply {
+	var replySlice []*models.Reply
+	for _, tweet := range tweets {
+		if isReply(tweet) {
+			toAdd := models.Reply{
+				TweetID: tweet.ID,
+				ReplyID: tweet.ConversationID,
+			}
+			replySlice = append(replySlice, &toAdd)
+		}
+	}
+	return replySlice
+}
