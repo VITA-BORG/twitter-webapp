@@ -5,14 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"flag"
 
 	pgx "github.com/jackc/pgx/v4"
 	godotenv "github.com/joho/godotenv"
 	twitterscraper "github.com/n0madic/twitter-scraper"
-	_ "github.com/rainbowriverrr/F3Ytwitter/internal/models"
+	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
 type application struct {
@@ -56,7 +55,7 @@ func main() {
 		infoLog:    infoLog,
 		connection: conn,
 		scraper:    *twitterscraper.New(),
-		debug:      true,
+		debug:      false,
 	}
 
 	srv := &http.Server{
@@ -70,23 +69,38 @@ func main() {
 		if err != nil {
 			errLog.Printf("Could not scrape user: %s, Error: %s", "nyamedev", err)
 		}
-		infoLog.Println(currUser.Gender)
-		infoLog.Println(currUser.IsPerson)
 
-		tweets := app.scrapeTweets(currUser.Handle, time.Date(2022, 4, 12, 0, 0, 0, 0, time.Local))
-		mentionedUsers, mentions := app.scrapeMentions(tweets, true)
-		replies := getReplies(tweets)
-
-		for _, tweet := range tweets {
-			app.infoLog.Printf("%s\n", tweet.Text)
+		err = models.InsertUser(app.connection, currUser)
+		if err != nil {
+			errLog.Printf("Could not insert user: %s, Error: %s", "nyamedev", err)
 		}
-		app.infoLog.Printf("%d tweets scraped", len(tweets))
-		app.infoLog.Printf("%d users mentioned", len(mentionedUsers))
-		app.infoLog.Printf("%+v\n", mentionedUsers)
-		app.infoLog.Printf("%d tweets with mentions", len(mentions))
-		app.infoLog.Printf("%+v\n", mentions)
-		app.infoLog.Printf("%d replies", len(replies))
-		app.infoLog.Printf("%+v\n", getBioTags(currUser.Bio))
+
+		exists := models.UserExists(app.connection, "nyamedev")
+		if !exists {
+			errLog.Printf("User nyamedev does not exist")
+		}
+
+		user, err := models.GetUserByHandle(app.connection, "Nyamedev")
+		if err != nil {
+			errLog.Printf("Could not get user: %s, Error: %s", "nyamedev", err)
+		}
+
+		app.infoLog.Printf("%+v", user)
+
+		// tweets := app.scrapeTweets(currUser.Handle, time.Date(2022, 4, 12, 0, 0, 0, 0, time.Local))
+		// mentionedUsers, mentions := app.scrapeMentions(tweets, true)
+		// replies := getReplies(tweets)
+
+		// for _, tweet := range tweets {
+		// 	app.infoLog.Printf("%s\n", tweet.Text)
+		// }
+		// app.infoLog.Printf("%d tweets scraped", len(tweets))
+		// app.infoLog.Printf("%d users mentioned", len(mentionedUsers))
+		// app.infoLog.Printf("%+v\n", mentionedUsers)
+		// app.infoLog.Printf("%d tweets with mentions", len(mentions))
+		// app.infoLog.Printf("%+v\n", mentions)
+		// app.infoLog.Printf("%d replies", len(replies))
+		// app.infoLog.Printf("%+v\n", getBioTags(currUser.Bio))
 	}
 
 	app.infoLog.Printf("Starting server on %s...", *addr)

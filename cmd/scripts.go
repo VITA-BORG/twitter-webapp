@@ -158,22 +158,28 @@ func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tw
 
 //guessGender guesses the user's gender by looking for personal pronouns.
 //If no personal pronouns are found, an empty string is returned
-func guessGender(bio string) string {
+func guessGender(bio string) *string {
+
+	var gender string
+
 	lowered := strings.ToLower(bio)
 	matched, _ := regexp.MatchString(`/?they/?`, lowered)
 	if matched {
-		return "X"
+		gender = "X"
+		return &gender
 	}
 	matched, _ = regexp.MatchString(`/?she/?`, lowered)
 	if matched {
-		return "F"
+		gender = "F"
+		return &gender
 	}
 	matched, _ = regexp.MatchString(`/?he/?`, lowered)
 	if matched {
-		return "M"
+		gender = "M"
+		return &gender
 	}
 
-	return ""
+	return &gender
 }
 
 //isPerson checks if a user is a person by looking for keywords that indicate "non-person" status in their bio.
