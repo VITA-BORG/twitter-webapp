@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -32,4 +33,8 @@ func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(user)
 
 	}
+}
+
+func (app *application) user(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "User")
 }
