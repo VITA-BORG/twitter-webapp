@@ -11,8 +11,8 @@ import (
 //POST /api/user?handle=username Adds or updates user in the database with the given handle and returns their JSON representation.
 func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodGet+","+http.MethodPost)
+	if r.Method != http.MethodGet && r.Method != http.MethodPut {
+		w.Header().Set("Allow", http.MethodGet+","+http.MethodPut)
 		app.clientError(w, http.StatusMethodNotAllowed)
 		return
 	}
@@ -36,5 +36,5 @@ func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) user(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "User")
+	fmt.Fprintf(w, "User Homepage")
 }

@@ -63,3 +63,24 @@ func UserExists(conn *pgx.Conn, handle string) bool {
 	}
 	return exists
 }
+
+//GetAllUsernames returns a list of all usernames in the database.
+func GetAllUsernames(conn *pgx.Conn) ([]string, error) {
+	var usernames []string
+	var err error
+	statement := "SELECT handle FROM users"
+	rows, err := conn.Query(context.Background(), statement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var handle string
+		err = rows.Scan(&handle)
+		if err != nil {
+			return nil, err
+		}
+		usernames = append(usernames, handle)
+	}
+	return usernames, nil
+}

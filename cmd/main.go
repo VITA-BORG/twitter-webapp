@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -64,47 +66,69 @@ func main() {
 		Handler:  app.routes(),
 	}
 
-	if app.debug {
-		currUser, err := app.scrapeUser("nyamedev")
+	//Basic CLI controls
+	fmt.Printf("\n~~Hello, welcome to the F3Y Twitter Scraper!~~\n")
+	fmt.Printf("~~This program will scrape twitter profiles and store them in a database.~~\n")
+	fmt.Printf("~~To select a command, ender it's number below.~~\n")
+	fmt.Printf("~~You can use the following commands to interact with the program:~~\n")
+
+	reader := bufio.NewReader(os.Stdin)
+	choosing := true
+	for choosing {
+		fmt.Printf("\n 1) Initialize/Reset Tables (Warning, all data will be lost)")
+		fmt.Printf("\n 2) Start Web Server")
+		fmt.Printf("\n 3) Scrape User and add to Database")
+		fmt.Printf("\n 4) List all users in Database")
+		fmt.Printf("\n")
+
+		char, _, err := reader.ReadRune()
 		if err != nil {
-			errLog.Printf("Could not scrape user: %s, Error: %s", "nyamedev", err)
+			errLog.Println(err)
+			continue
 		}
-
-		err = models.InsertUser(app.connection, currUser)
-		if err != nil {
-			errLog.Printf("Could not insert user: %s, Error: %s", "nyamedev", err)
+		reader.Reset(os.Stdin)
+		switch char {
+		case '1':
+			fmt.Printf("\n~~Initializing Tables~~\n")
+			app.resetTables()
+			fmt.Printf("\n~~Tables Initialized~~\n")
+		case '2':
+			fmt.Printf("\n~~Starting Web Server~~\n")
+			choosing = false
+		case '3':
+			app.scrapeCLI(reader)
+		case '4':
+			fmt.Printf("\n~~Listing all users in Database~~\n")
+			users, err := models.GetAllUsernames(app.connection)
+			if err != nil {
+				errLog.Println(err)
+				continue
+			}
+			for _, user := range users {
+				fmt.Printf("%s\n", user)
+			}
 		}
+		reader.Reset(os.Stdin)
 
-		exists := models.UserExists(app.connection, "nyamedev")
-		if !exists {
-			errLog.Printf("User nyamedev does not exist")
-		}
-
-		user, err := models.GetUserByHandle(app.connection, "Nyamedev")
-		if err != nil {
-			errLog.Printf("Could not get user: %s, Error: %s", "nyamedev", err)
-		}
-
-		app.infoLog.Printf("%+v", user)
-
-		// tweets := app.scrapeTweets(currUser.Handle, time.Date(2022, 4, 12, 0, 0, 0, 0, time.Local))
-		// mentionedUsers, mentions := app.scrapeMentions(tweets, true)
-		// replies := getReplies(tweets)
-
-		// for _, tweet := range tweets {
-		// 	app.infoLog.Printf("%s\n", tweet.Text)
-		// }
-		// app.infoLog.Printf("%d tweets scraped", len(tweets))
-		// app.infoLog.Printf("%d users mentioned", len(mentionedUsers))
-		// app.infoLog.Printf("%+v\n", mentionedUsers)
-		// app.infoLog.Printf("%d tweets with mentions", len(mentions))
-		// app.infoLog.Printf("%+v\n", mentions)
-		// app.infoLog.Printf("%d replies", len(replies))
-		// app.infoLog.Printf("%+v\n", getBioTags(currUser.Bio))
 	}
 
 	app.infoLog.Printf("Starting server on %s...", *addr)
 	err = srv.ListenAndServe()
 	errLog.Fatal(err)
 
+}
+
+func (app *application) scrapeCLI(r *bufio.Reader) {
+	fmt.Printf("\n~~Please enter a twitter username to scrape~~\n")
+	username, _ := r.ReadString('\n')
+	username = username[:len(username)-1]
+	user, err := app.scrapeUser(username)
+	if err != nil {
+		app.errorLog.Println(err)
+		return
+	}
+	err = app.addOrUpdateUser(user)
+	if err != nil {
+		app.errorLog.Println(err)
+	}
 }

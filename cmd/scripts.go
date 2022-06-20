@@ -32,6 +32,7 @@ func (app *application) resetTables() error {
 //scrapeUser scrapes a user's twitter profile and returns a models.User struct.
 //TODO: add error checking for handles that don't exist
 func (app *application) scrapeUser(handle string) (*models.User, error) {
+	app.infoLog.Printf("Scraping user %s", handle)
 	profile, err := app.scraper.GetProfile(handle)
 	if err != nil {
 		app.errorLog.Println(err)
@@ -45,7 +46,7 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 	}
 	currTime := time.Now()
 
-	//app.infoLog.Printf("%+v\n", profile)
+	app.infoLog.Printf("%+v\n", profile)
 
 	return &models.User{
 		ID:          uid,
@@ -65,6 +66,38 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 		Followers:   profile.FollowersCount,
 		CollectedAt: &currTime,
 	}, nil
+
+}
+
+//addOrUpdateUser adds a user to the database if it doesn't already exist.
+//If the user already exists, it updates the user's information.
+func (app *application) addOrUpdateUser(user *models.User) error {
+	if !models.UserExists(app.connection, user.Handle) { //inserts user if they don't exist in the database
+		err := models.InsertUser(app.connection, user)
+		if err != nil {
+			return err
+		}
+		app.infoLog.Printf("Added user %s", user.Handle)
+	}
+	//TODO: update user information if they already exist
+	return nil
+}
+
+//getUserByHandle returns a user from the database based on a handle
+//This adds a layer between the api handler and the database models
+func (app *application) getUserByHandle(handle string) (*models.User, error) {
+
+	var user *models.User
+	var err error
+
+	if models.UserExists(app.connection, handle) {
+		user, err = models.GetUserByHandle(app.connection, handle)
+		app.infoLog.Printf("User %s fetched from database", handle)
+		return user, err
+	} else {
+		app.errorLog.Printf("User %s does not exist in database", handle)
+		return nil, errors.New("user does not exist")
+	}
 
 }
 
@@ -161,26 +194,29 @@ func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tw
 //If no personal pronouns are found, an empty string is returned
 func guessGender(bio string) *string {
 
-	var gender string
+	var gender *string
 
 	lowered := strings.ToLower(bio)
 	matched, _ := regexp.MatchString(`/?they/?`, lowered)
 	if matched {
-		gender = "X"
-		return &gender
+		x := "X"
+		gender = &x
+		return gender
 	}
 	matched, _ = regexp.MatchString(`/?she/?`, lowered)
 	if matched {
-		gender = "F"
-		return &gender
+		f := "F"
+		gender = &f
+		return gender
 	}
 	matched, _ = regexp.MatchString(`/?he/?`, lowered)
 	if matched {
-		gender = "M"
-		return &gender
+		m := "M"
+		gender = &m
+		return gender
 	}
 
-	return &gender
+	return gender
 }
 
 //isPerson checks if a user is a person by looking for keywords that indicate "non-person" status in their bio.
@@ -312,20 +348,4 @@ func getReplies(tweets []*models.Tweet) []*models.Reply {
 		}
 	}
 	return replySlice
-}
-
-func (app *application) getUserByHandle(handle string) (*models.User, error) {
-
-	var user *models.User
-	var err error
-
-	if models.UserExists(app.connection, handle) {
-		user, err = models.GetUserByHandle(app.connection, handle)
-		app.infoLog.Printf("User %s fetched from database", handle)
-		return user, err
-	} else {
-		app.errorLog.Printf("User %s does not exist in database", handle)
-		return nil, errors.New("user does not exist")
-	}
-
 }
