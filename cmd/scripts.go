@@ -101,6 +101,16 @@ func (app *application) getUserByHandle(handle string) (*models.User, error) {
 
 }
 
+//getAllUsernames wraps getUsernames and returns a slice of strings.
+//Uses app.errorLog to log errors.
+func (app *application) getAllUsernames() []string {
+	usernames, err := models.GetAllUsernames(app.connection)
+	if err != nil {
+		app.errorLog.Println(err)
+	}
+	return usernames
+}
+
 //ScrapeTweets scrapes a user's tweets and returns a slice of models.Tweet structs.
 //Note: Some retweets may be shortened.
 func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tweet {

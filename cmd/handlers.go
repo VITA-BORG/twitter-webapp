@@ -20,7 +20,9 @@ func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		userHandle := r.URL.Query().Get("handle")
 		if userHandle == "" {
-			app.clientError(w, http.StatusBadRequest)
+			usernames := app.getAllUsernames()
+			json.NewEncoder(w).Encode(usernames)
+			return
 		}
 
 		user, err := app.getUserByHandle(userHandle)
