@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -311,4 +312,20 @@ func getReplies(tweets []*models.Tweet) []*models.Reply {
 		}
 	}
 	return replySlice
+}
+
+func (app *application) getUserByHandle(handle string) (*models.User, error) {
+
+	var user *models.User
+	var err error
+
+	if models.UserExists(app.connection, handle) {
+		user, err = models.GetUserByHandle(app.connection, handle)
+		app.infoLog.Printf("User %s fetched from database", handle)
+		return user, err
+	} else {
+		app.errorLog.Printf("User %s does not exist in database", handle)
+		return nil, errors.New("user does not exist")
+	}
+
 }

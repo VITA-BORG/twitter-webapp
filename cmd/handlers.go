@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
-func (app *application) user(w http.ResponseWriter, r *http.Request) {
+//userAPI is a handler for the /api/user endpoint.
+//GET /api/user?handle=username returns a JSON representation of the user.
+//POST /api/user?handle=username Adds or updates user in the database with the given handle and returns their JSON representation.
+func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodGet+","+http.MethodPost)
@@ -21,14 +22,9 @@ func (app *application) user(w http.ResponseWriter, r *http.Request) {
 			app.clientError(w, http.StatusBadRequest)
 		}
 
-		if !models.UserExists(app.connection, userHandle) {
-			app.notFound(w)
-			return
-		}
-
-		user, err := models.GetUserByHandle(app.connection, userHandle)
+		user, err := app.getUserByHandle(userHandle)
 		if err != nil {
-			app.serverError(w, err)
+			app.notFound(w)
 			return
 		}
 
