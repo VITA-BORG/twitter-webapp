@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"text/template"
 )
 
 //userAPI is a handler for the /api/user endpoint.
@@ -39,4 +40,38 @@ func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) user(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User Homepage")
+}
+
+//home is a handler for the root endpoint.  It shows a simple list of users in the database.
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		app.notFound(w)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		app.clientError(w, http.StatusMethodNotAllowed)
+		return
+	}
+
+	//temporary template reading
+	files := []string{
+		"./ui/html/base.html",
+		"./ui/html/pages/dashboard.html",
+		"./ui/html/partials/nav.html",
+	}
+
+	t, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	err = t.ExecuteTemplate(w, "base", nil)
+	if err != nil {
+		app.serverError(w, err)
+	}
+
+	fmt.Fprintf(w, "Homepage")
 }
