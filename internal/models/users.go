@@ -64,6 +64,26 @@ func UserExists(conn *pgx.Conn, handle string) bool {
 	return exists
 }
 
+//GetUserIDByHandle returns the user's ID given their handle
+func GetUserIDByHandle(conn *pgx.Conn, handle string) (int64, error) {
+	var id int64
+	var err error
+	statement := "SELECT id FROM users where handle=$1"
+	err = conn.QueryRow(context.Background(), statement, handle).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+//UpdateUser updates the user's record given a user struct
+func UpdateUser(conn *pgx.Conn, user *User) error {
+	statement := "UPDATE users SET profile_name=$1, handle=$2, gender=$3, is_person=$4, joined=$5, bio=$6, location=$7, verfied=$8, avatar=$9, tweets=$10, likes=$11, media=$12, following=$13, followers=$14, collected_at=$15 WHERE id=$16"
+	_, err := conn.Exec(context.Background(), statement, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.ID)
+	return err
+
+}
+
 //GetAllUsernames returns a list of all usernames in the database.
 func GetAllUsernames(conn *pgx.Conn) ([]string, error) {
 	var usernames []string

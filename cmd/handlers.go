@@ -9,7 +9,7 @@ import (
 
 //userAPI is a handler for the /api/user endpoint.
 //GET /api/user?handle=username returns a JSON representation of the user.
-//POST /api/user?handle=username Adds or updates user in the database with the given handle and returns their JSON representation.
+//PUT /api/user?handle=username Adds or updates user in the database with the given handle and returns their JSON representation.
 func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodGet && r.Method != http.MethodPut {
@@ -35,6 +35,11 @@ func (app *application) userAPI(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(user)
 
+	}
+
+	//Takes user handle, along with a variety of other parameters and adds them to the scrape.
+	if r.Method == http.MethodPut {
+		fmt.Fprintf(w, "TODO: add or update user in database.")
 	}
 }
 
