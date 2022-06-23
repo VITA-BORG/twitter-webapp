@@ -9,8 +9,8 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/api/user", app.userAPI)
-	mux.HandleFunc("/user", app.user)
+	mux.HandleFunc("/api/users", app.userAPI)
+	mux.HandleFunc("/users", app.user)
 	mux.HandleFunc("/", app.home)
 
 	return mux
