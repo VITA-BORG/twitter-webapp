@@ -60,6 +60,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	Users := app.getAllUsernames()
+
 	//temporary template reading
 	files := []string{
 		"./ui/html/base.html",
@@ -73,7 +75,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = t.ExecuteTemplate(w, "base", nil)
+	err = t.ExecuteTemplate(w, "base", Users)
 	if err != nil {
 		app.serverError(w, err)
 	}
