@@ -12,6 +12,7 @@ require (
 	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jackc/pgx/v4 v4.16.1 // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
+	github.com/justinas/alice v1.2.0 // indirect
 	github.com/n0madic/twitter-scraper v0.0.0-20220524141701-b009258bb6b6 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect

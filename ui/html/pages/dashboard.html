@@ -2,7 +2,7 @@
 
 {{define "main"}}
     <h1>Users in the system</h1>
-    {{range .}}
+    {{range .Users}}
         <a class="dashboard-list" href='/api/users?handle={{.}}'>{{.}}</a>
     {{else}}
         <p>No users in the system</p>

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"text/template"
 )
 
 //userAPI is a handler for the /api/user endpoint.
@@ -61,24 +60,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Users := app.getAllUsernames()
-
-	//temporary template reading
-	files := []string{
-		"./ui/html/base.html",
-		"./ui/html/pages/dashboard.html",
-		"./ui/html/partials/nav.html",
+	data := &templateData{
+		Users: Users,
 	}
 
-	t, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	err = t.ExecuteTemplate(w, "base", Users)
-	if err != nil {
-		app.serverError(w, err)
-	}
+	app.renderTemplate(w, http.StatusOK, "dashboard.html", data)
 
 	fmt.Fprintf(w, "Homepage")
 }

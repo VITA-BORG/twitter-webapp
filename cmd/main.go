@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -17,11 +18,12 @@ import (
 )
 
 type application struct {
-	errorLog   *log.Logger
-	infoLog    *log.Logger
-	connection *pgx.Conn
-	scraper    twitterscraper.Scraper
-	debug      bool
+	errorLog      *log.Logger
+	infoLog       *log.Logger
+	connection    *pgx.Conn
+	scraper       twitterscraper.Scraper
+	templateCache map[string]*template.Template
+	debug         bool
 }
 
 func main() {
@@ -52,12 +54,20 @@ func main() {
 	defaultAddr := os.Getenv("WEB_ADDR")
 	addr := flag.String("addr", defaultAddr, "HTTP network address")
 
+	//Initializes template cache
+	infoLog.Println("Initializing template cache...")
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		errLog.Fatal(err)
+	}
+
 	app := &application{
-		errorLog:   errLog,
-		infoLog:    infoLog,
-		connection: conn,
-		scraper:    *twitterscraper.New(),
-		debug:      false,
+		errorLog:      errLog,
+		infoLog:       infoLog,
+		connection:    conn,
+		scraper:       *twitterscraper.New(),
+		debug:         false,
+		templateCache: templateCache,
 	}
 
 	srv := &http.Server{

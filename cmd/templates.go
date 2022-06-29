@@ -1,9 +1,28 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"html/template"
+	"net/http"
 	"path/filepath"
+	"time"
+
+	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
+
+type templateData struct {
+	CurrentUser models.User
+	Users       []string
+}
+
+var functions = template.FuncMap{
+	"currentDate": currDateFormatter,
+}
+
+func currDateFormatter() string {
+	return time.Now().Format("January 1 2006 at 15:04")
+}
 
 //newTemplateCache is a helper function that loads all HTML templates into a template cache, and returns a map of template names to template.
 //This will make it easy to render templates in the future, since the templates will be in the cache already and you will not have to parse them for every request.
@@ -20,7 +39,8 @@ func newTemplateCache() (map[string]*template.Template, error) {
 		name := filepath.Base(page)
 
 		//Parse base template file and add to set
-		tmpl, err := template.ParseFiles("./ui/html/base.html")
+		//Registers functions in the template, allowing them to be called from the template
+		tmpl, err := template.New(name).Funcs(functions).ParseFiles("./ui/html/base.html")
 		if err != nil {
 			return nil, err
 		}
@@ -41,4 +61,27 @@ func newTemplateCache() (map[string]*template.Template, error) {
 
 	}
 	return cache, nil
+}
+
+//renderTemplate is a helper function that renders a template with the given name and data.
+func (app *application) renderTemplate(w http.ResponseWriter, status int, page string, data *templateData) {
+	//Retrieves template from cache
+	tmpl, ok := app.templateCache[page]
+	if !ok {
+		app.serverError(w, fmt.Errorf("The template %s does not exist", page))
+		return
+	}
+
+	//Writes template to buffer to check errors
+	buf := new(bytes.Buffer)
+	err := tmpl.ExecuteTemplate(buf, "base", data)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	//Writes buffer to response
+	w.WriteHeader(status)
+	buf.WriteTo(w)
+
 }

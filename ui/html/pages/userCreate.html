@@ -1,0 +1,18 @@
+{{define "title"}}Insert or Update a User{{end}}
+
+{{define "main"}}
+<form action='/users/insert' method='POST'>
+    <div>
+        <label>Handle</label>
+        <input type="text" name="handle" value="">
+    </div>
+    <div>
+        <label>Options:</label>
+        <input type="checkbox" name="follows" value="true">Scrape Follows and Followers<br>
+        <input type="checkbox" name="content" value="true">Scrape Content<br>
+    </div>
+    <div>
+        <input type="submit" value="Submit">
+    </div>
+</form>
+{{end}}

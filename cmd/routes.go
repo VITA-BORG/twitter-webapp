@@ -2,6 +2,8 @@ package main
 
 import (
 	"net/http"
+
+	"github.com/justinas/alice"
 )
 
 func (app *application) routes() http.Handler {
@@ -13,5 +15,8 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/users", app.user)
 	mux.HandleFunc("/", app.home)
 
-	return mux
+	//creates a middleware chain
+	standard := alice.New(app.recoverPanic, app.logRequest, securityHeaders)
+
+	return standard.Then(mux)
 }
