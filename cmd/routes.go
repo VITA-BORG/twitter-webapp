@@ -3,20 +3,25 @@ package main
 import (
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 )
 
 func (app *application) routes() http.Handler {
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/api/users", app.userAPI)
-	mux.HandleFunc("/users", app.user)
-	mux.HandleFunc("/", app.home)
+	router := httprouter.New()
+
+	//todo: tell router how to handle certain errors
+
+	fileServer := http.FileServer(http.Dir("./ui/static/"))
+	router.Handler(http.MethodGet, "/static/", http.StripPrefix("/static", fileServer))
+
+	router.HandlerFunc(http.MethodGet, "/api/users", app.userAPI)
+	router.HandlerFunc(http.MethodGet, "/users", app.user)
+	router.HandlerFunc(http.MethodGet, "/", app.home)
 
 	//creates a middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, securityHeaders)
 
-	return standard.Then(mux)
+	return standard.Then(router)
 }
