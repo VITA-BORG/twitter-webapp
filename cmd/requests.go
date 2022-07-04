@@ -142,4 +142,82 @@ func (app *application) getFollowers(uid int64) ([]*models.Follow, error) {
 	return followers, nil
 }
 
-//getFollows scrapes a user's profile and returns a slice of models.Follower structs of users that a user follows
+//getFollows scrapes a user's profile and returns a slice of models.Follow structs of users that a user follows
+func (app *application) getFollows(uid int64) ([]*models.Follow, error) {
+	var follows []*models.Follow
+	var pageToken string
+	currTime := time.Now()
+	//get the first page of followers, then continues going as long as there is a next page
+	for {
+		url := getFollowURL(uid, "following", pageToken)
+		resp, err := app.getResponse(url)
+		if err != nil {
+			app.errorLog.Println(err)
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		//checks if the response is ok
+		if resp.StatusCode == http.StatusOK {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				app.errorLog.Println(err)
+				return nil, err
+			}
+
+			//unmarshal the response into a followerResponse struct
+			var followerResponse followerResponse
+			err = json.Unmarshal(body, &followerResponse)
+			if err != nil {
+				app.errorLog.Println(err)
+				return nil, err
+			}
+
+			if app.debug {
+				app.infoLog.Printf("%v\n", followerResponse)
+			}
+
+			//iterate through the followers and add them to the slice
+			for _, follower := range followerResponse.Data {
+
+				followerID, err := strconv.ParseInt(follower.ID, 10, 64)
+				if err != nil {
+					app.errorLog.Println("error converting follower id to int:", err)
+					return nil, err
+				}
+
+				//trims the extra characters from the twitter response
+				toTrim := strings.Index(follower.CreatedAt, "T")
+				if toTrim == -1 {
+					continue
+				}
+				follower.CreatedAt = follower.CreatedAt[:toTrim]
+				createdAt, err := time.Parse(models.Format, follower.CreatedAt)
+				if err != nil {
+					app.errorLog.Println("error parsing time:", err)
+					return nil, err
+				}
+
+				follows = append(follows, &models.Follow{
+					FollowerID:  uid,
+					CreatedAt:   createdAt,
+					FolloweeID:  followerID,
+					CollectedAt: currTime,
+				})
+			}
+			//if there is a next page, set the page token to the next page
+			//otherwise, break out of the loop
+			pageToken = followerResponse.Meta.NextToken
+			if pageToken == "" {
+				break
+			}
+			//sleep 60 seconds to avoid rate limiting
+			time.Sleep(60 * time.Second)
+		} else {
+			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", uid, resp.StatusCode)
+			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", uid, resp.StatusCode)
+		}
+
+	}
+	return follows, nil
+}

@@ -142,7 +142,7 @@ func main() {
 			fmt.Printf("\n~~Testing Option~~\n")
 			testUserID, _ := models.GetUserIDByHandle(app.connection, "nyameDev")
 			fmt.Printf("\nUser ID: %d\n", testUserID)
-			followers, err := app.getFollowers(testUserID)
+			followers, err := app.getFollows(testUserID)
 			if err != nil {
 				errLog.Println(err)
 				continue
