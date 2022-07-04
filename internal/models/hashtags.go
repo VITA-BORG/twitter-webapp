@@ -7,6 +7,7 @@ import (
 )
 
 type Hashtag struct {
+	ID      int64  `json:"id"`
 	TweetID int64  `json:"tweet_id"`
 	Hashtag string `json:"hashtag"`
 }

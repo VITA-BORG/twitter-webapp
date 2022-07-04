@@ -8,6 +8,7 @@ import (
 )
 
 type BioTag struct {
+	ID              int64      `json:"id"`
 	UserID          int64      `json:"user_id"`
 	MentionedUserID int64      `json:"mentioned_user_id"`
 	CollectedAt     *time.Time `json:"collected_at"`

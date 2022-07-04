@@ -18,12 +18,17 @@ import (
 )
 
 type application struct {
-	errorLog      *log.Logger
-	infoLog       *log.Logger
-	connection    *pgx.Conn
-	scraper       twitterscraper.Scraper
-	templateCache map[string]*template.Template
-	debug         bool
+	errorLog       *log.Logger
+	infoLog        *log.Logger
+	connection     *pgx.Conn
+	scraper        twitterscraper.Scraper
+	templateCache  map[string]*template.Template
+	debug          bool
+	bearerToken    string
+	bearerToken2   string
+	apiKey         string
+	secretKey      string
+	followerClient http.Client
 }
 
 func main() {
@@ -39,6 +44,13 @@ func main() {
 		errLog.Println("Error loading .env file")
 	}
 	infoLog.Println("env loaded")
+
+	//Loading Bearer Tokens and API keys
+	infoLog.Println("Loading Bearer Tokens...")
+	bearerToken := os.Getenv("BEARER_TOKEN")
+	bearerToken2 := os.Getenv("BEARER_TOKEN2")
+	apiKey := os.Getenv("API_KEY")
+	secretKey := os.Getenv("SECRET_KEY")
 
 	//Connects to the database using .env variables
 	infoLog.Println("Connecting to database...")
@@ -61,13 +73,22 @@ func main() {
 		errLog.Fatal(err)
 	}
 
+	//Initializes http clients
+	infoLog.Println("Initializing http clients...")
+	followerClient := http.Client{}
+
 	app := &application{
-		errorLog:      errLog,
-		infoLog:       infoLog,
-		connection:    conn,
-		scraper:       *twitterscraper.New(),
-		debug:         false,
-		templateCache: templateCache,
+		errorLog:       errLog,
+		infoLog:        infoLog,
+		connection:     conn,
+		scraper:        *twitterscraper.New(),
+		debug:          false,
+		templateCache:  templateCache,
+		bearerToken:    bearerToken,
+		bearerToken2:   bearerToken2,
+		apiKey:         apiKey,
+		secretKey:      secretKey,
+		followerClient: followerClient,
 	}
 
 	srv := &http.Server{
@@ -117,6 +138,16 @@ func main() {
 			for _, user := range users {
 				fmt.Printf("%s\n", user)
 			}
+		case '5':
+			fmt.Printf("\n~~Testing Option~~\n")
+			testUserID, _ := models.GetUserIDByHandle(app.connection, "nyameDev")
+			fmt.Printf("\nUser ID: %d\n", testUserID)
+			followers, err := app.getFollowers(testUserID)
+			if err != nil {
+				errLog.Println(err)
+				continue
+			}
+			fmt.Printf("%v\n", followers)
 		}
 		reader.Reset(os.Stdin)
 

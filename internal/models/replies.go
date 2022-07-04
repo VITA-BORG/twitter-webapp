@@ -7,6 +7,7 @@ import (
 )
 
 type Reply struct {
+	ID      int64 `json:"id"`
 	TweetID int64 `json:"tweet_id"`
 	ReplyID int64 `json:"user_replied_to_id"`
 }

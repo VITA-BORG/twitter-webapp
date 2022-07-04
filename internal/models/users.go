@@ -26,7 +26,7 @@ type User struct {
 	CollectedAt *time.Time `json:"collected_at"`
 }
 
-var format string = "2006-01-02"
+var Format string = "2006-01-02"
 
 //InsertUser inserts a User object into the database.  No checking.
 func InsertUser(conn *pgx.Conn, user *User) error {
@@ -68,7 +68,7 @@ func UserExists(conn *pgx.Conn, handle string) bool {
 func GetUserIDByHandle(conn *pgx.Conn, handle string) (int64, error) {
 	var id int64
 	var err error
-	statement := "SELECT id FROM users where handle=$1"
+	statement := "SELECT id FROM users where handle ILIKE $1"
 	err = conn.QueryRow(context.Background(), statement, handle).Scan(&id)
 	if err != nil {
 		return 0, err

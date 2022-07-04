@@ -7,6 +7,7 @@ import (
 )
 
 type Mention struct {
+	ID      int64 `json:"id"`
 	TweetID int64 `json:"tweet_id"`
 	UserID  int64 `json:"user_id"`
 }
