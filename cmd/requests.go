@@ -1,3 +1,4 @@
+//TODO: getFollows and getFollowers can be unified into a single function
 package main
 
 import (
@@ -44,12 +45,12 @@ func getFollowURL(uid int64, followStatus string, pageToken string) string {
 
 //getResponse returns the response from a given url.  This is used in tandem with getURL to get the response from the twitter api
 //This also adds important headers to the request
-func (app *application) getResponse(url string) (*http.Response, error) {
+func (app *application) getResponse(url string, bearer string) (*http.Response, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("Authorization", "Bearer "+app.bearerToken)
+	request.Header.Set("Authorization", "Bearer "+bearer)
 	request.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.followerClient.Do(request)
@@ -70,7 +71,7 @@ func (app *application) getFollowers(uid int64) ([]*models.Follow, error) {
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
 		url := getFollowURL(uid, "followers", pageToken)
-		resp, err := app.getResponse(url)
+		resp, err := app.getResponse(url, app.bearerToken)
 		if err != nil {
 			app.errorLog.Println(err)
 			return nil, err
@@ -150,7 +151,7 @@ func (app *application) getFollows(uid int64) ([]*models.Follow, error) {
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
 		url := getFollowURL(uid, "following", pageToken)
-		resp, err := app.getResponse(url)
+		resp, err := app.getResponse(url, app.bearerToken2)
 		if err != nil {
 			app.errorLog.Println(err)
 			return nil, err

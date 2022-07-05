@@ -29,6 +29,16 @@ type application struct {
 	apiKey         string
 	secretKey      string
 	followerClient http.Client
+	//channels expect uid of user
+	profileChan   chan int64
+	followChan    chan int64
+	followingChan chan int64
+	//statuses of channels
+	profileStatus   string
+	followStatus    string
+	followingStatus string
+	//the limit of the number of followers to scrape.  If the number of followers is greater than this, the followers will not be scraped.
+	followLimit int
 }
 
 func main() {
@@ -77,18 +87,39 @@ func main() {
 	infoLog.Println("Initializing http clients...")
 	followerClient := http.Client{}
 
+	//Initializing channels
+	infoLog.Println("Initializing channels...")
+	profileChan := make(chan int64)
+	followChan := make(chan int64)
+	followingChan := make(chan int64)
+
+	defer close(profileChan)
+	defer close(followChan)
+	defer close(followingChan)
+
+	profileStatus := "idle"
+	followStatus := "idle"
+	followingStatus := "idle"
+
 	app := &application{
-		errorLog:       errLog,
-		infoLog:        infoLog,
-		connection:     conn,
-		scraper:        *twitterscraper.New(),
-		debug:          false,
-		templateCache:  templateCache,
-		bearerToken:    bearerToken,
-		bearerToken2:   bearerToken2,
-		apiKey:         apiKey,
-		secretKey:      secretKey,
-		followerClient: followerClient,
+		errorLog:        errLog,
+		infoLog:         infoLog,
+		connection:      conn,
+		scraper:         *twitterscraper.New(),
+		debug:           false,
+		templateCache:   templateCache,
+		bearerToken:     bearerToken,
+		bearerToken2:    bearerToken2,
+		apiKey:          apiKey,
+		secretKey:       secretKey,
+		followerClient:  followerClient,
+		profileChan:     profileChan,
+		followChan:      followChan,
+		followingChan:   followingChan,
+		profileStatus:   profileStatus,
+		followStatus:    followStatus,
+		followingStatus: followingStatus,
+		followLimit:     5000,
 	}
 
 	srv := &http.Server{
@@ -110,6 +141,8 @@ func main() {
 		fmt.Printf("\n 2) Start Web Server")
 		fmt.Printf("\n 3) Scrape User and add to Database")
 		fmt.Printf("\n 4) List all users in Database")
+		fmt.Printf("\n 5) Random testing option")
+		fmt.Printf("\n 6) Quit")
 		fmt.Printf("\n")
 
 		char, _, err := reader.ReadRune()
@@ -148,6 +181,9 @@ func main() {
 				continue
 			}
 			fmt.Printf("%v\n", followers)
+		case '6':
+			fmt.Printf("\n~~Quitting~~\n")
+			os.Exit(0)
 		}
 		reader.Reset(os.Stdin)
 
