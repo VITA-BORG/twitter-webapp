@@ -8,11 +8,13 @@ import (
 )
 
 type Follow struct {
-	ID          int64     `json:"id"`
-	FollowerID  int64     `json:"follower_id"`
-	FolloweeID  int64     `json:"followee_id"`
-	CreatedAt   time.Time `json:"created_at"`
-	CollectedAt time.Time `json:"collected_at"`
+	ID               int64     `json:"id"`
+	FollowerID       int64     `json:"follower_id"`
+	FolloweeID       int64     `json:"followee_id"`
+	FollowerUsername string    `json:"follower_username"`
+	FolloweeUsername string    `json:"followee_username"`
+	CreatedAt        time.Time `json:"created_at"`
+	CollectedAt      time.Time `json:"collected_at"`
 }
 
 //InsertFollow inserts a Follow object into the database.  No checking.

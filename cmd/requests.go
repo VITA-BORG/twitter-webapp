@@ -64,13 +64,13 @@ func (app *application) getResponse(url string, bearer string) (*http.Response, 
 }
 
 //getFollowers scrapes a user's profile and returns a slice of models.Follow structs of users that follow a user
-func (app *application) getFollowers(uid int64) ([]*models.Follow, error) {
+func (app *application) getFollowers(user simplifiedUser) ([]*models.Follow, error) {
 	var followers []*models.Follow
 	var pageToken string
 	currTime := time.Now()
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
-		url := getFollowURL(uid, "followers", pageToken)
+		url := getFollowURL(user.ID, "followers", pageToken)
 		resp, err := app.getResponse(url, app.bearerToken)
 		if err != nil {
 			app.errorLog.Println(err)
@@ -120,10 +120,12 @@ func (app *application) getFollowers(uid int64) ([]*models.Follow, error) {
 				}
 
 				followers = append(followers, &models.Follow{
-					FollowerID:  followerID,
-					CreatedAt:   createdAt,
-					FolloweeID:  uid,
-					CollectedAt: currTime,
+					FollowerID:       followerID,
+					FollowerUsername: follower.Username,
+					CreatedAt:        createdAt,
+					FolloweeID:       user.ID,
+					FolloweeUsername: user.Username,
+					CollectedAt:      currTime,
 				})
 			}
 			//if there is a next page, set the page token to the next page
@@ -135,22 +137,23 @@ func (app *application) getFollowers(uid int64) ([]*models.Follow, error) {
 			//sleep 60 seconds to avoid rate limiting
 			time.Sleep(60 * time.Second)
 		} else {
-			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", uid, resp.StatusCode)
-			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", uid, resp.StatusCode)
+			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.ID, resp.StatusCode)
+			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.ID, resp.StatusCode)
 		}
 
 	}
+	app.infoLog.Printf("%d followers found for user: %d\n", len(followers), user.ID)
 	return followers, nil
 }
 
 //getFollows scrapes a user's profile and returns a slice of models.Follow structs of users that a user follows
-func (app *application) getFollows(uid int64) ([]*models.Follow, error) {
+func (app *application) getFollows(user simplifiedUser) ([]*models.Follow, error) {
 	var follows []*models.Follow
 	var pageToken string
 	currTime := time.Now()
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
-		url := getFollowURL(uid, "following", pageToken)
+		url := getFollowURL(user.ID, "following", pageToken)
 		resp, err := app.getResponse(url, app.bearerToken2)
 		if err != nil {
 			app.errorLog.Println(err)
@@ -200,10 +203,12 @@ func (app *application) getFollows(uid int64) ([]*models.Follow, error) {
 				}
 
 				follows = append(follows, &models.Follow{
-					FollowerID:  uid,
-					CreatedAt:   createdAt,
-					FolloweeID:  followerID,
-					CollectedAt: currTime,
+					FollowerID:       followerID,
+					FollowerUsername: follower.Username,
+					CreatedAt:        createdAt,
+					FolloweeID:       user.ID,
+					FolloweeUsername: user.Username,
+					CollectedAt:      currTime,
 				})
 			}
 			//if there is a next page, set the page token to the next page
@@ -215,10 +220,11 @@ func (app *application) getFollows(uid int64) ([]*models.Follow, error) {
 			//sleep 60 seconds to avoid rate limiting
 			time.Sleep(60 * time.Second)
 		} else {
-			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", uid, resp.StatusCode)
-			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", uid, resp.StatusCode)
+			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.ID, resp.StatusCode)
+			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.ID, resp.StatusCode)
 		}
 
 	}
+	app.infoLog.Printf("%d follows found for user: %d\n", len(follows), user.ID)
 	return follows, nil
 }

@@ -46,7 +46,7 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 	}
 	currTime := time.Now()
 
-	app.infoLog.Printf("%+v\n", profile)
+	app.infoLog.Printf("user %s successfully scraped", handle)
 
 	return &models.User{
 		ID:          uid,
@@ -66,7 +66,6 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 		Followers:   profile.FollowersCount,
 		CollectedAt: &currTime,
 	}, nil
-
 }
 
 //addOrUpdateUser adds a user to the database if it doesn't already exist.
@@ -358,4 +357,51 @@ func getReplies(tweets []*models.Tweet) []*models.Reply {
 		}
 	}
 	return replySlice
+}
+
+//updateFollows updates the database with the new follows
+//also updates the database with the new users
+func (app *application) updateFollows(follows []*models.Follow) error {
+	for _, follow := range follows {
+		//check if the follow already exists in the database
+		if !models.FollowExists(app.connection, follow) {
+			//checks if the Followee exists in the database
+			if !models.UserIDExists(app.connection, follow.FolloweeID) {
+				//scrapes the user if it doesn't exist in the database
+				user, err := app.scrapeUser(follow.FolloweeUsername)
+				if err != nil {
+					app.errorLog.Println("Error scraping user: ", err)
+					app.errorLog.Println(err)
+				}
+				//adds the user to the database
+				err = models.InsertUser(app.connection, user)
+				if err != nil {
+					app.errorLog.Println("Error inserting user: ", err)
+					app.errorLog.Println(err)
+				}
+			}
+			//checks if the Follower exists in the database
+			if !models.UserIDExists(app.connection, follow.FollowerID) {
+				//scrapes the user if it doesn't exist in the database
+				user, err := app.scrapeUser(follow.FollowerUsername)
+				if err != nil {
+					app.errorLog.Println("Error scraping user: ", err)
+					app.errorLog.Println(err)
+				}
+				//adds the user to the database
+				err = models.InsertUser(app.connection, user)
+				if err != nil {
+					app.errorLog.Println("Error inserting user: ", err)
+					app.errorLog.Println(err)
+				}
+			}
+
+			err := models.InsertFollow(app.connection, follow)
+			if err != nil {
+				app.errorLog.Println(err)
+				return err
+			}
+		}
+	}
+	return nil
 }

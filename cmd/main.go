@@ -17,6 +17,11 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+type simplifiedUser struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+}
+
 type application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger
@@ -29,10 +34,11 @@ type application struct {
 	apiKey         string
 	secretKey      string
 	followerClient http.Client
+	//expects string of user handle
+	profileChan chan string
 	//channels expect uid of user
-	profileChan   chan int64
-	followChan    chan int64
-	followingChan chan int64
+	followChan   chan simplifiedUser
+	followerChan chan simplifiedUser
 	//statuses of channels
 	profileStatus   string
 	followStatus    string
@@ -89,13 +95,13 @@ func main() {
 
 	//Initializing channels
 	infoLog.Println("Initializing channels...")
-	profileChan := make(chan int64)
-	followChan := make(chan int64)
-	followingChan := make(chan int64)
+	profileChan := make(chan string)
+	followChan := make(chan simplifiedUser)
+	followerChan := make(chan simplifiedUser)
 
 	defer close(profileChan)
 	defer close(followChan)
-	defer close(followingChan)
+	defer close(followerChan)
 
 	profileStatus := "idle"
 	followStatus := "idle"
@@ -115,12 +121,18 @@ func main() {
 		followerClient:  followerClient,
 		profileChan:     profileChan,
 		followChan:      followChan,
-		followingChan:   followingChan,
+		followerChan:    followerChan,
 		profileStatus:   profileStatus,
 		followStatus:    followStatus,
 		followingStatus: followingStatus,
 		followLimit:     5000,
 	}
+
+	//Initializes concurrent workers
+	infoLog.Println("Initializing concurrent workers...")
+	go app.ProfileWorker()
+	go app.FollowWorker()
+	go app.FollowerWorker()
 
 	srv := &http.Server{
 		Addr:     *addr,
@@ -173,14 +185,7 @@ func main() {
 			}
 		case '5':
 			fmt.Printf("\n~~Testing Option~~\n")
-			testUserID, _ := models.GetUserIDByHandle(app.connection, "nyameDev")
-			fmt.Printf("\nUser ID: %d\n", testUserID)
-			followers, err := app.getFollows(testUserID)
-			if err != nil {
-				errLog.Println(err)
-				continue
-			}
-			fmt.Printf("%v\n", followers)
+			profileChan <- "nyamedev"
 		case '6':
 			fmt.Printf("\n~~Quitting~~\n")
 			os.Exit(0)

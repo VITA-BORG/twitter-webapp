@@ -64,6 +64,17 @@ func UserExists(conn *pgx.Conn, handle string) bool {
 	return exists
 }
 
+//UserIDExists checks if a user ID exists in the database.
+func UserIDExists(conn *pgx.Conn, ID int64) bool {
+	var exists bool
+	statement := "SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)"
+	err := conn.QueryRow(context.Background(), statement, ID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
 //GetUserIDByHandle returns the user's ID given their handle
 func GetUserIDByHandle(conn *pgx.Conn, handle string) (int64, error) {
 	var id int64
@@ -78,7 +89,7 @@ func GetUserIDByHandle(conn *pgx.Conn, handle string) (int64, error) {
 
 //UpdateUser updates the user's record given a user struct
 func UpdateUser(conn *pgx.Conn, user *User) error {
-	statement := "UPDATE users SET profile_name=$1, handle=$2, gender=$3, is_person=$4, joined=$5, bio=$6, location=$7, verfied=$8, avatar=$9, tweets=$10, likes=$11, media=$12, following=$13, followers=$14, collected_at=$15 WHERE id=$16"
+	statement := "UPDATE users SET profile_name=$1, handle=$2, gender=$3, is_person=$4, joined=$5, bio=$6, location=$7, verified=$8, avatar=$9, tweets=$10, likes=$11, media=$12, following=$13, followers=$14, collected_at=$15 WHERE id=$16"
 	_, err := conn.Exec(context.Background(), statement, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.ID)
 	return err
 
