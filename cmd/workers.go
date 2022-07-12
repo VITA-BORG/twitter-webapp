@@ -11,9 +11,14 @@ import (
 //Then sends the user id to the follower or following channel if it falls below the limit
 func (app *application) ProfileWorker() {
 	//reads from the profile channel until it is closed
-	for handle := range app.profileChan {
-		app.profileStatus = fmt.Sprintf("scraping %s", handle)
-		user, err := app.scrapeUser(handle)
+	for curr := range app.profileChan {
+		app.profileStatus = fmt.Sprintf("scraping %s", curr.Username)
+		user, err := app.scrapeUser(curr.Username)
+		if curr.isParticipant {
+			user.IsParticipant = true
+		} else {
+			user.IsParticipant = false
+		}
 		if err != nil {
 			app.errorLog.Println("Error scraping user:", err)
 			continue
@@ -40,26 +45,88 @@ func (app *application) ProfileWorker() {
 				continue
 			}
 		}
+		//adds uid to simplifiedUser struct
+		curr.ID = user.ID
+		//Sends the simplifiedUser struct to the tweets channel.
+		if curr.isParticipant {
+			app.tweetsChan <- curr
+		}
+
 		//checks if user followers exceeds limit, if so, it does not scrape the followers
 		if user.Followers > app.followLimit {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
 			continue
 		}
-		//sends uid to follower channel
-		app.followerChan <- simplifiedUser{ID: user.ID, Username: user.Handle}
+
+		app.followerChan <- curr
 		//checks if user following exceeds limit, if so, it does not scrape the following
 		if user.Following > app.followLimit {
 			app.infoLog.Println("User has too many following, not scraping following")
 			app.profileStatus = "idle"
 			continue
 		}
-		//sends uid to follow channel
-		app.followChan <- simplifiedUser{ID: user.ID, Username: user.Handle}
+		app.followChan <- curr
 		app.profileStatus = "idle"
 
 	}
+	app.profileStatus = "off"
 	app.infoLog.Println("Profile Worker finished")
+}
+
+//TweetsWorker is the worker that scrapes the tweets of a user and stores them in the database concurrently
+func (app *application) TweetsWorker() {
+	//reads from the tweets channel until it is closed
+	for user := range app.tweetsChan {
+		app.tweetsStatus = fmt.Sprintf("scraping %d", user.ID)
+		//scrapes tweets and updates them in database
+		app.infoLog.Println("Scraping tweets for user:", user.ID)
+		tweets := app.scrapeTweets(user.Username, user.startDate)
+		err := app.updateTweets(tweets)
+		if err != nil {
+			app.errorLog.Println("Error scraping tweets:", err)
+			continue
+		}
+		//checks for replies and adds them to the database
+		app.infoLog.Println("Sraping replies for user:", user.ID)
+		replies, err := app.getReplies(tweets)
+		if err != nil {
+			app.errorLog.Println("Error scraping replies:", err)
+			continue
+		}
+		err = app.updateReplies(replies)
+		if err != nil {
+			app.errorLog.Println("Error updating replies:", err)
+			continue
+		}
+		app.infoLog.Println("Scraping mentions for user:", user.ID)
+		userSlice, mentionsSlice := app.scrapeMentions(tweets)
+		//double checks if the user is already in the database, if not, it adds it.
+		for _, user := range userSlice {
+			if !models.UserExists(app.connection, user.Handle) {
+				err = models.InsertUser(app.connection, user)
+				if err != nil {
+					app.errorLog.Println("Error adding user to database")
+					app.errorLog.Println(err)
+					continue
+				}
+			}
+		}
+		//double checks if the mention is already in the database, if not, it adds it.
+		for _, mention := range mentionsSlice {
+			if !models.MentionExists(app.connection, mention) {
+				err = models.InsertMention(app.connection, mention)
+				if err != nil {
+					app.errorLog.Println("Error adding mention to database")
+					app.errorLog.Println(err)
+					continue
+				}
+			}
+		}
+		app.tweetsStatus = "idle"
+	}
+	app.tweetsStatus = "off"
+	app.infoLog.Println("Tweets Worker finished")
 }
 
 //Follow Worker is the worker that scrapes the followings of a user and stores them in the database concurrently.
@@ -72,10 +139,15 @@ func (app *application) FollowWorker() {
 			app.errorLog.Println("Error getting followings:", err)
 			continue
 		}
-		app.updateFollows(follows)
+		err = app.updateFollows(follows)
+		if err != nil {
+			app.errorLog.Println("Error updating followings:", err)
+			continue
+		}
 		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
 		app.followStatus = "idle"
 	}
+	app.followingStatus = "off"
 	app.infoLog.Println("Followings Worker finished")
 }
 
@@ -89,9 +161,14 @@ func (app *application) FollowerWorker() {
 			app.errorLog.Println("Error getting followers:", err)
 			continue
 		}
-		app.updateFollows(followers)
+		err = app.updateFollows(followers)
+		if err != nil {
+			app.errorLog.Println("Error updating followers:", err)
+			continue
+		}
 		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
 		app.followStatus = "idle"
 	}
+	app.followStatus = "off"
 	app.infoLog.Println("Follower Worker finished")
 }

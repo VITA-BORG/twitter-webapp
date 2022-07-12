@@ -13,7 +13,7 @@ type Mention struct {
 }
 
 //InsertMention inserts a Mention object into the database.  No checking.
-func InsertMention(conn *pgx.Conn, mention Mention) error {
+func InsertMention(conn *pgx.Conn, mention *Mention) error {
 	statement := "INSERT INTO mentions(tweet_id, user_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, mention.TweetID, mention.UserID)
 	return err
@@ -30,7 +30,7 @@ func GetMentionByTID(conn *pgx.Conn, ID int64) (Mention, error) {
 }
 
 //MentionExists checks if a mention exists in the database.
-func MentionExists(conn *pgx.Conn, mention Mention) bool {
+func MentionExists(conn *pgx.Conn, mention *Mention) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM mentions WHERE tweet_id=$1 AND user_id=$2)"
 	err := conn.QueryRow(context.Background(), statement, mention.TweetID, mention.UserID).Scan(&exists)

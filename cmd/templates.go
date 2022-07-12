@@ -18,6 +18,7 @@ type templateData struct {
 	FollowingStatus string
 	ProfileStatus   string
 	Users           []string
+	NumberOfUsers   int
 }
 
 var functions = template.FuncMap{

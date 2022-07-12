@@ -13,7 +13,7 @@ type Reply struct {
 }
 
 //InsertReply inserts a Reply object into the database.  No checking.
-func InsertReply(conn *pgx.Conn, reply Reply) error {
+func InsertReply(conn *pgx.Conn, reply *Reply) error {
 	statement := "INSERT INTO replies(tweet_id, user_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, reply.TweetID, reply.ReplyID)
 	return err
@@ -26,4 +26,14 @@ func GetReplyByID(conn *pgx.Conn) (Reply, error) {
 	statement := "SELECT * FROM replies WHERE tweet_id=$1"
 	err = conn.QueryRow(context.Background(), statement).Scan(&reply.TweetID, &reply.ReplyID)
 	return reply, err
+}
+
+func ReplyExists(conn *pgx.Conn, reply *Reply) bool {
+	var exists bool
+	statement := "SELECT EXISTS(SELECT 1 FROM replies WHERE tweet_id=$1 AND user_replied_to_id=$2)"
+	err := conn.QueryRow(context.Background(), statement, reply.TweetID, reply.ReplyID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
 }

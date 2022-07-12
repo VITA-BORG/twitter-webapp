@@ -110,20 +110,20 @@ func (app *application) getAllUsernames() []string {
 	return usernames
 }
 
-//ScrapeTweets scrapes a user's tweets and returns a slice of models.Tweet structs.
+//ScrapeTweets scrapes a user's tweets and returns a slice of twitterscraper.Tweet structs.
 //Note: Some retweets may be shortened.
-func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tweet {
+func (app *application) scrapeTweets(handle string, from time.Time) []*twitterscraper.Tweet {
 	cursor := ""
 	var tweets []*twitterscraper.Tweet
 	var err error
-	var tweetsSlice []*models.Tweet //Slice to return
+	var tweetsSlice []*twitterscraper.Tweet //Slice to return
 	numTweets := 0
 	tweets, cursor, err = app.scraper.FetchTweets(handle, 200, cursor)
 	if err != nil {
 		app.errorLog.Println(err)
 	}
 	for tweets != nil {
-		currTime := time.Now()
+
 		for _, tweet := range tweets {
 
 			//Checks if tweet is older than from date.  If it is, all remaining tweets are skipped.
@@ -133,62 +133,11 @@ func (app *application) scrapeTweets(handle string, from time.Time) []*models.Tw
 				return tweetsSlice
 			}
 
-			//app.infoLog.Printf(tweet.TimeParsed.Format("2006-01-02"))
-
-			//Converts fields to appropriate types for DB model
-			tweetUserID, err := strconv.ParseInt(tweet.UserID, 10, 64)
-			if err != nil {
-				app.errorLog.Println(err)
-			}
-			tweetID, err := strconv.ParseInt(tweet.ID, 10, 64)
-			if err != nil {
-				app.errorLog.Println(err)
-			}
-			var conversationID int64 = tweetID
-			if tweet.IsReply {
-				if tweet.InReplyToStatus != nil { //Extra check to make sure there actually is a tweet object
-					conversationID, err = strconv.ParseInt(tweet.InReplyToStatus.ID, 10, 64)
-					if err != nil {
-						app.errorLog.Println(err)
-					}
-				}
-			}
-			var retweetID int64 = 0
-			if tweet.IsRetweet {
-				if tweet.RetweetedStatus != nil { //Extra check to make sure there actually is a tweet object
-					retweetID, err = strconv.ParseInt(tweet.RetweetedStatus.ID, 10, 64)
-					if err != nil {
-						app.errorLog.Println(err)
-					}
-				}
-			} else if tweet.IsQuoted {
-				if tweet.QuotedStatus != nil { //Extra check to make sure there actually is a tweet object
-					retweetID, err = strconv.ParseInt(tweet.QuotedStatus.ID, 10, 64)
-					if err != nil {
-						app.errorLog.Println(err)
-					}
-				}
-			}
-
-			//Creates models.tweet struct
-			toAdd := &models.Tweet{
-				ID:             tweetID,
-				ConversationID: conversationID,
-				Text:           tweet.Text,
-				PostedAt:       &tweet.TimeParsed,
-				Url:            tweet.PermanentURL,
-				UserID:         tweetUserID,
-				IsRetweet:      tweet.IsRetweet,
-				RetweetID:      retweetID,
-				Likes:          tweet.Likes,
-				Retweets:       tweet.Retweets,
-				Replies:        tweet.Replies,
-				CollectedAt:    &currTime,
-			}
-			tweetsSlice = append(tweetsSlice, toAdd)
+			tweetsSlice = append(tweetsSlice, tweet)
 			numTweets++
+
 		}
-		//Fetches next page of tweets
+
 		tweets, cursor, err = app.scraper.FetchTweets(handle, 200, cursor)
 		if err != nil {
 			app.errorLog.Println(err)
@@ -286,11 +235,11 @@ func getBioTags(bio string) []string {
 }
 
 //scrapeMentions scrapes the users mentioned in a tweet
-//returns a slice of models.user structs of users mentioned in the tweet that do not exist in the databas
+//returns a slice of models.user structs of users mentioned in the tweet that do not exist in the database
 //and a slice of models.mention structs of mentions that do not exist in the database
 //Skips mentions in retweets by default.
 //TODO Parralelize
-func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
+func (app *application) scrapeMentions(tweets []*twitterscraper.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
 
 	//By default, retweets are skipped
 	scrapeRT := false
@@ -310,6 +259,12 @@ func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ..
 		if re.MatchString(tweet.Text) {
 			var currUser *models.User
 			var err error
+			tweetID, err := strconv.ParseInt(tweet.ID, 10, 64)
+			if err != nil {
+				app.errorLog.Println(err)
+				//mention is skipped if there is an issue with the tweetID
+				continue
+			}
 			mentions := getMentions(tweet.Text)
 			for _, mention := range mentions {
 				app.infoLog.Printf("Scraped mention %s", mention)
@@ -324,11 +279,11 @@ func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ..
 						userSlice = append(userSlice, currUser)
 						toInsert := models.Mention{
 							UserID:  currUser.ID,
-							TweetID: tweet.ID,
+							TweetID: tweetID,
 						}
 						//Only adds mention if user was successfully scraped
 						//checks to make sure mention doesn't already exist before adding
-						if !models.MentionExists(app.connection, toInsert) {
+						if !models.MentionExists(app.connection, &toInsert) {
 							mentionSlice = append(mentionSlice, &toInsert)
 						}
 					}
@@ -339,24 +294,132 @@ func (app *application) scrapeMentions(tweets []*models.Tweet, scrapeRetweets ..
 	return userSlice, mentionSlice
 }
 
-//isReply checks if a tweet is a reply to another tweet
-func isReply(tweet *models.Tweet) bool {
-	return tweet.ID != tweet.ConversationID
-}
-
 //getReplies returns a slice of models.reply structs of tweets that are replies
-func getReplies(tweets []*models.Tweet) []*models.Reply {
+func (app *application) getReplies(tweets []*twitterscraper.Tweet) ([]*models.Reply, error) {
 	var replySlice []*models.Reply
 	for _, tweet := range tweets {
-		if isReply(tweet) {
+		if tweet.IsReply {
+			tweetID, err := strconv.ParseInt(tweet.ID, 10, 64)
+			if err != nil {
+				app.errorLog.Println(err)
+				return nil, err
+			}
+			//double checks to make sure inreplytostatus is not null
+			if tweet.InReplyToStatus == nil {
+				//potential reply is skipped if inreplytostatus is null
+				continue
+			}
+			userRepliedToID, err := strconv.ParseInt(tweet.InReplyToStatus.UserID, 10, 64)
+			if err != nil {
+				app.errorLog.Println(err)
+				return nil, err
+			}
 			toAdd := models.Reply{
-				TweetID: tweet.ID,
-				ReplyID: tweet.ConversationID,
+				TweetID: tweetID,
+				ReplyID: userRepliedToID,
 			}
 			replySlice = append(replySlice, &toAdd)
 		}
 	}
-	return replySlice
+	return replySlice, nil
+}
+
+//updateReplies checks if the reply exists in the database before adding it
+//also adds user replied to if they do not exist.
+func (app *application) updateReplies(replies []*models.Reply) error {
+	for _, reply := range replies {
+		if !models.ReplyExists(app.connection, reply) {
+			err := models.InsertReply(app.connection, reply)
+			if err != nil {
+				app.errorLog.Println(err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+//updateTweets updates the database with new tweets
+//checks if the tweet is a retweet, if it is, the retweet is added to the database if it does not already exist
+func (app *application) updateTweets(tweets []*twitterscraper.Tweet) error {
+
+	now := time.Now()
+
+	for _, tweet := range tweets {
+
+		tweetID, err := strconv.ParseInt(tweet.ID, 10, 64)
+		if err != nil {
+			app.errorLog.Println(err)
+		}
+
+		//checks if tweet already exists in database.  If tweet does exist, it is skipped.
+		if models.TweetExists(app.connection, tweetID) {
+			continue
+		}
+
+		//if tweet does not exist, it is added to the database
+
+		//Converts fields to appropriate types for DB model
+		tweetUserID, err := strconv.ParseInt(tweet.UserID, 10, 64)
+		if err != nil {
+			app.errorLog.Println(err)
+			return err
+		}
+
+		var conversationID int64 = tweetID
+		if tweet.IsReply { //todo: add reply to database if it does not already exist
+			if tweet.InReplyToStatus != nil { //Extra check to make sure there actually is a tweet object
+				conversationID, err = strconv.ParseInt(tweet.InReplyToStatus.ID, 10, 64)
+				if err != nil {
+					app.errorLog.Println(err)
+					return err
+				}
+			}
+		}
+		var retweetID int64 = 0
+		if tweet.IsRetweet { //todo add retweet to database if it does not already exist
+			if tweet.RetweetedStatus != nil { //Extra check to make sure there actually is a tweet object
+				retweetID, err = strconv.ParseInt(tweet.RetweetedStatus.ID, 10, 64)
+				if err != nil {
+					app.errorLog.Println(err)
+					return err
+				}
+			}
+		} else if tweet.IsQuoted {
+			if tweet.QuotedStatus != nil { //Extra check to make sure there actually is a tweet object
+				retweetID, err = strconv.ParseInt(tweet.QuotedStatus.ID, 10, 64)
+				if err != nil {
+					app.errorLog.Println(err)
+					return err
+				}
+			}
+		}
+
+		//Creates models.tweet struct
+		toAdd := &models.Tweet{
+			ID:             tweetID,
+			ConversationID: conversationID,
+			Text:           tweet.Text,
+			PostedAt:       &tweet.TimeParsed,
+			Url:            tweet.PermanentURL,
+			UserID:         tweetUserID,
+			IsRetweet:      tweet.IsRetweet,
+			RetweetID:      retweetID,
+			Likes:          tweet.Likes,
+			Retweets:       tweet.Retweets,
+			Replies:        tweet.Replies,
+			CollectedAt:    &now,
+		}
+
+		//Adds tweet to database
+		err = models.InsertTweet(app.connection, toAdd)
+		if err != nil {
+			app.errorLog.Println(err)
+			return err
+		}
+	}
+	//Fetches
+	return nil
 }
 
 //updateFollows updates the database with the new follows

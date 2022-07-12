@@ -8,30 +8,31 @@ import (
 )
 
 type User struct {
-	ID          int64      `json:"id"`
-	ProfileName string     `json:"profile_name"`
-	Handle      string     `json:"handle"`
-	Gender      *string    `json:"gender"`
-	IsPerson    bool       `json:"is_person"`
-	Joined      *time.Time `json:"joined"`
-	Bio         string     `json:"bio"`
-	Location    string     `json:"location"`
-	Verified    bool       `json:"verified"`
-	Avatar      string     `json:"avatar"`
-	Tweets      int        `json:"tweets"`
-	Likes       int        `json:"likes"`
-	Media       int        `json:"media"`
-	Following   int        `json:"following"`
-	Followers   int        `json:"followers"`
-	CollectedAt *time.Time `json:"collected_at"`
+	ID            int64      `json:"id"`
+	ProfileName   string     `json:"profile_name"`
+	Handle        string     `json:"handle"`
+	Gender        *string    `json:"gender"`
+	IsPerson      bool       `json:"is_person"`
+	Joined        *time.Time `json:"joined"`
+	Bio           string     `json:"bio"`
+	Location      string     `json:"location"`
+	Verified      bool       `json:"verified"`
+	Avatar        string     `json:"avatar"`
+	Tweets        int        `json:"tweets"`
+	Likes         int        `json:"likes"`
+	Media         int        `json:"media"`
+	Following     int        `json:"following"`
+	Followers     int        `json:"followers"`
+	CollectedAt   *time.Time `json:"collected_at"`
+	IsParticipant bool       `json:"is_participant"`
 }
 
 var Format string = "2006-01-02"
 
 //InsertUser inserts a User object into the database.  No checking.
 func InsertUser(conn *pgx.Conn, user *User) error {
-	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)"
-	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt)
+	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at, is_participant) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"
+	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.IsParticipant)
 	return err
 }
 
@@ -40,7 +41,7 @@ func GetUserByHandle(conn *pgx.Conn, handle string) (*User, error) {
 	var user User
 	var err error
 	statement := "SELECT * FROM users WHERE handle ILIKE $1"
-	err = conn.QueryRow(context.Background(), statement, handle).Scan(&user.ID, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Tweets, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt)
+	err = conn.QueryRow(context.Background(), statement, handle).Scan(&user.ID, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Tweets, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt, &user.IsParticipant)
 	return &user, err
 }
 
@@ -49,7 +50,7 @@ func GetUserByID(conn *pgx.Conn, ID int64) (*User, error) {
 	var user User
 	var err error
 	statement := "SELECT * FROM users WHERE id=$1"
-	err = conn.QueryRow(context.Background(), statement, ID).Scan(&user.ID, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Tweets, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt)
+	err = conn.QueryRow(context.Background(), statement, ID).Scan(&user.ID, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Tweets, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt, &user.IsParticipant)
 	return &user, err
 }
 
@@ -114,4 +115,25 @@ func GetAllUsernames(conn *pgx.Conn) ([]string, error) {
 		usernames = append(usernames, handle)
 	}
 	return usernames, nil
+}
+
+//GetAllParticipants returns a list of all participants in the database.
+func GetAllParticipants(conn *pgx.Conn) ([]*User, error) {
+	var users []*User
+	var err error
+	statement := "SELECT * FROM users WHERE is_participant=TRUE"
+	rows, err := conn.Query(context.Background(), statement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.ID, &user.ProfileName, &user.Handle, &user.Gender, &user.IsPerson, &user.Joined, &user.Bio, &user.Location, &user.Verified, &user.Avatar, &user.Tweets, &user.Likes, &user.Media, &user.Following, &user.Followers, &user.CollectedAt, &user.IsParticipant)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
 }

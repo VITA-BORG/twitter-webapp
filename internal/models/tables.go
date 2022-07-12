@@ -54,7 +54,8 @@ func CreateTables(conn *pgx.Conn) error {
         media int,
         following int,
         followers int,
-        collected_at timestamp
+        collected_at timestamp,
+		is_participant boolean
 		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {

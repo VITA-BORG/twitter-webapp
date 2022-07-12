@@ -6,7 +6,18 @@ import (
 )
 
 func (app *application) users(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "User Homepage")
+	Users := app.getAllUsernames()
+	data := &templateData{
+		Users:           Users,
+		ProfileStatus:   app.profileStatus,
+		FollowerStatus:  app.followStatus,
+		FollowingStatus: app.followingStatus,
+		NumberOfUsers:   len(Users),
+	}
+
+	app.renderTemplate(w, http.StatusOK, "users.html", data)
+
+	fmt.Fprintf(w, "Users")
 }
 
 //home is a handler for the root endpoint.  It shows a simple list of users in the database.
@@ -18,10 +29,10 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	Users := app.getAllUsernames()
 	data := &templateData{
-		Users:           Users,
 		ProfileStatus:   app.profileStatus,
 		FollowerStatus:  app.followStatus,
 		FollowingStatus: app.followingStatus,
+		NumberOfUsers:   len(Users),
 	}
 
 	app.renderTemplate(w, http.StatusOK, "dashboard.html", data)
@@ -30,6 +41,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
+	data := &templateData{}
+	app.renderTemplate(w, http.StatusOK, "userAdd.html", data)
 	fmt.Fprintf(w, "User Add Form")
 }
 

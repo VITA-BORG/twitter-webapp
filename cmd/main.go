@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"flag"
 
@@ -18,8 +19,10 @@ import (
 )
 
 type simplifiedUser struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	isParticipant bool      `json:"isParticipant"`
+	startDate     time.Time `json:"startDate"`
 }
 
 type application struct {
@@ -34,15 +37,16 @@ type application struct {
 	apiKey         string
 	secretKey      string
 	followerClient http.Client
-	//expects string of user handle
-	profileChan chan string
-	//channels expect uid of user
+	//expects simplifiedUser struct
+	profileChan  chan simplifiedUser
 	followChan   chan simplifiedUser
 	followerChan chan simplifiedUser
+	tweetsChan   chan simplifiedUser
 	//statuses of channels
 	profileStatus   string
 	followStatus    string
 	followingStatus string
+	tweetsStatus    string
 	//the limit of the number of followers to scrape.  If the number of followers is greater than this, the followers will not be scraped.
 	followLimit int
 }
@@ -95,17 +99,20 @@ func main() {
 
 	//Initializing channels
 	infoLog.Println("Initializing channels...")
-	profileChan := make(chan string)
+	profileChan := make(chan simplifiedUser)
 	followChan := make(chan simplifiedUser)
 	followerChan := make(chan simplifiedUser)
+	tweetsChan := make(chan simplifiedUser)
 
 	defer close(profileChan)
 	defer close(followChan)
 	defer close(followerChan)
+	defer close(tweetsChan)
 
 	profileStatus := "idle"
 	followStatus := "idle"
 	followingStatus := "idle"
+	tweetsStatus := "idle"
 
 	app := &application{
 		errorLog:        errLog,
@@ -122,9 +129,11 @@ func main() {
 		profileChan:     profileChan,
 		followChan:      followChan,
 		followerChan:    followerChan,
+		tweetsChan:      tweetsChan,
 		profileStatus:   profileStatus,
 		followStatus:    followStatus,
 		followingStatus: followingStatus,
+		tweetsStatus:    tweetsStatus,
 		followLimit:     5000,
 	}
 
@@ -133,6 +142,7 @@ func main() {
 	go app.ProfileWorker()
 	go app.FollowWorker()
 	go app.FollowerWorker()
+	go app.TweetsWorker()
 
 	srv := &http.Server{
 		Addr:     *addr,
@@ -166,7 +176,10 @@ func main() {
 		switch char {
 		case '1':
 			fmt.Printf("\n~~Initializing Tables~~\n")
-			app.resetTables()
+			err := app.resetTables()
+			if err != nil {
+				errLog.Println(err)
+			}
 			fmt.Printf("\n~~Tables Initialized~~\n")
 		case '2':
 			fmt.Printf("\n~~Starting Web Server~~\n")
@@ -185,7 +198,7 @@ func main() {
 			}
 		case '5':
 			fmt.Printf("\n~~Testing Option~~\n")
-			profileChan <- "nyamedev"
+			profileChan <- simplifiedUser{Username: "nyamedev", isParticipant: true, startDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
 		case '6':
 			fmt.Printf("\n~~Quitting~~\n")
 			os.Exit(0)
