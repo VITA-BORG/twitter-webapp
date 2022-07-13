@@ -79,7 +79,7 @@ func (app *application) TweetsWorker() {
 	//reads from the tweets channel until it is closed
 	for user := range app.tweetsChan {
 		app.tweetsStatus = fmt.Sprintf("scraping %d", user.ID)
-		//scrapes tweets and updates them in database
+		//scrapes tweets and updates them in database (includes retweets and replies)
 		app.infoLog.Println("Scraping tweets for user:", user.ID)
 		tweets := app.scrapeTweets(user.Username, user.startDate)
 		err := app.updateTweets(tweets)
@@ -87,18 +87,7 @@ func (app *application) TweetsWorker() {
 			app.errorLog.Println("Error scraping tweets:", err)
 			continue
 		}
-		//checks for replies and adds them to the database
-		app.infoLog.Println("Sraping replies for user:", user.ID)
-		replies, err := app.getReplies(tweets)
-		if err != nil {
-			app.errorLog.Println("Error scraping replies:", err)
-			continue
-		}
-		err = app.updateReplies(replies)
-		if err != nil {
-			app.errorLog.Println("Error updating replies:", err)
-			continue
-		}
+		//scrapes mentions and updates them in database
 		app.infoLog.Println("Scraping mentions for user:", user.ID)
 		userSlice, mentionsSlice := app.scrapeMentions(tweets)
 		//double checks if the user is already in the database, if not, it adds it.

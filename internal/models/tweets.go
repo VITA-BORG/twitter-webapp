@@ -15,7 +15,7 @@ type Tweet struct {
 	Url            string     `json:"url"`
 	UserID         int64      `json:"user_id"`
 	IsRetweet      bool       `json:"is_retweet"`
-	RetweetID      int64      `json:"retweet_id"`
+	RetweetID      *int64     `json:"retweet_id"`
 	Likes          int        `json:"likes"`
 	Retweets       int        `json:"retweets"`
 	Replies        int        `json:"replies"`
