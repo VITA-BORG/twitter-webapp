@@ -7,7 +7,7 @@ import (
 )
 
 type School struct {
-	ID       int64  `json:"id"`
+	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	TopRated bool   `json:"top_rated"`
 	Public   bool   `json:"public"`
@@ -18,7 +18,7 @@ type School struct {
 }
 
 //InsertSchool inserts a School object into the database.  No checking.
-func InsertSchool(conn *pgx.Conn, school School) error {
+func InsertSchool(conn *pgx.Conn, school *School) error {
 	statement := "INSERT INTO schools(id, name, top_rated, public, city, state_province, country, user_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)"
 	_, err := conn.Exec(context.Background(), statement, school.ID, school.Name, school.TopRated, school.Public, school.City, school.State, school.Country, school.User_ID)
 	return err
@@ -51,4 +51,23 @@ func SchoolExists(conn *pgx.Conn, ID int64) bool {
 		return false
 	}
 	return exists
+}
+
+//SchoolUserIDExists checks if a school user ID exists in the database.
+func SchoolUserIDExists(conn *pgx.Conn, ID int64) bool {
+	var exists bool
+	statement := "SELECT EXISTS(SELECT 1 FROM schools WHERE user_id=$1)"
+	err := conn.QueryRow(context.Background(), statement, ID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
+//NumberOfSchools returns the number of schools in the database.
+func NumberOfSchools(conn *pgx.Conn) (int, error) {
+	var count int
+	statement := "SELECT COUNT(*) FROM schools"
+	err := conn.QueryRow(context.Background(), statement).Scan(&count)
+	return count, err
 }

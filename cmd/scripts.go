@@ -515,3 +515,55 @@ func (app *application) updateFollows(follows []*models.Follow) error {
 	}
 	return nil
 }
+
+//addSchool adds a school in the database.  It will also assign the school an ID.
+func (app *application) addSchool(school *simplifiedSchool) error {
+	var toAdd models.School
+
+	user, err := app.scrapeUser(school.TwitterHandle)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
+
+	err = app.addOrUpdateUser(user)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
+
+	currNum, err := models.NumberOfSchools(app.connection)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
+
+	toAdd.ID = currNum + 1
+	toAdd.Name = school.Name
+	toAdd.TopRated = school.TopRated
+	toAdd.Public = school.Public
+	toAdd.City = school.City
+	toAdd.State = school.State
+	toAdd.Country = school.Country
+	toAdd.User_ID = user.ID
+
+	err = models.InsertSchool(app.connection, &toAdd)
+	if err != nil {
+		app.errorLog.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+//addBioTag adds a biotag to the database, checks if it already exists
+func (app *application) addBioTag(bioTag *models.BioTag) error {
+	if !models.TagExists(app.connection, bioTag.UserID, bioTag.MentionedUserID) {
+		err := models.InsertBioTag(app.connection, bioTag)
+		if err != nil {
+			app.errorLog.Println(err)
+			return err
+		}
+	}
+	return nil
+}

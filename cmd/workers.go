@@ -12,13 +12,10 @@ import (
 func (app *application) ProfileWorker() {
 	//reads from the profile channel until it is closed
 	for curr := range app.profileChan {
+		currTime := time.Now()
 		app.profileStatus = fmt.Sprintf("scraping %s", curr.Username)
+		//always scrapes user because there will be updates
 		user, err := app.scrapeUser(curr.Username)
-		if curr.isParticipant {
-			user.IsParticipant = true
-		} else {
-			user.IsParticipant = false
-		}
 		if err != nil {
 			app.errorLog.Println("Error scraping user:", err)
 			continue
@@ -45,10 +42,69 @@ func (app *application) ProfileWorker() {
 				continue
 			}
 		}
+		//checks if the user is a school.  If they are, it adds them to the school database including user database.
+		if curr.IsSchool {
+			app.infoLog.Println("User is a school")
+			err = app.addSchool(curr.SchoolInfo)
+			if err != nil {
+				app.errorLog.Println("Error adding school to database")
+				app.errorLog.Println(err)
+				app.profileStatus = "idle"
+				continue
+			}
+		}
+
+		//adds biotags to the database
+		tags := getBioTags(user.Bio)
+		for _, tag := range tags {
+			//checks if the tagged user is already in the database, if not, it adds it.
+			if !models.UserExists(app.connection, tag) {
+				taggedUser, err := app.scrapeUser(tag)
+				if err != nil {
+					app.errorLog.Println("Error scraping tagged user:", err)
+					continue
+				}
+				err = models.InsertUser(app.connection, taggedUser)
+				if err != nil {
+					app.errorLog.Println("Error adding tagged user to database")
+					app.errorLog.Println(err)
+					continue
+				}
+
+				toAdd := &models.BioTag{
+					UserID:          user.ID,
+					MentionedUserID: taggedUser.ID,
+					CollectedAt:     &currTime,
+				}
+
+				app.addBioTag(toAdd)
+			} else {
+				taggedUserID, err := models.GetUserIDByHandle(app.connection, tag)
+				if err != nil {
+					app.errorLog.Println("Error getting tagged user id:", err)
+					continue
+				}
+				toAdd := &models.BioTag{
+					UserID:          user.ID,
+					MentionedUserID: taggedUserID,
+					CollectedAt:     &currTime,
+				}
+
+				app.addBioTag(toAdd)
+			}
+		}
+
+		//checks if user is a participant.  If they are, it adds the relation with the school if it doesn't exist already
+		if curr.IsParticipant {
+			//add logic to create relation with school if it doesn't exist
+			user.IsParticipant = true
+		} else {
+			user.IsParticipant = false
+		}
 		//adds uid to simplifiedUser struct
 		curr.ID = user.ID
 		//Sends the simplifiedUser struct to the tweets channel.
-		if curr.isParticipant {
+		if curr.IsParticipant {
 			app.tweetsChan <- curr
 		}
 
@@ -81,7 +137,7 @@ func (app *application) TweetsWorker() {
 		app.tweetsStatus = fmt.Sprintf("scraping %d", user.ID)
 		//scrapes tweets and updates them in database (includes retweets and replies)
 		app.infoLog.Println("Scraping tweets for user:", user.ID)
-		tweets := app.scrapeTweets(user.Username, user.startDate)
+		tweets := app.scrapeTweets(user.Username, user.StartDate)
 		err := app.updateTweets(tweets)
 		if err != nil {
 			app.errorLog.Println("Error scraping tweets:", err)

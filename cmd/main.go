@@ -18,11 +18,25 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+type simplifiedSchool struct {
+	Name          string `json:"name"`
+	TopRated      bool   `json:"top_rated"`
+	Public        bool   `json:"public"`
+	City          string `json:"city"`
+	State         string `json:"state_province"`
+	Country       string `json:"country"`
+	TwitterHandle string `json:"twitter_handle"`
+}
+
+//User structure used to pass data between goroutines.  This is used by the ProfileWorker, FollowerWorker, FollowingWorker, and TweetsWorker goroutines.
 type simplifiedUser struct {
-	ID            int64     `json:"id"`
-	Username      string    `json:"username"`
-	isParticipant bool      `json:"isParticipant"`
-	startDate     time.Time `json:"startDate"`
+	ID                  int64             `json:"id"`
+	Username            string            `json:"username"`
+	IsSchool            bool              `json:"is_school"`
+	IsParticipant       bool              `json:"isParticipant"`
+	ParticipantSchoolID int               `json:"participantSchool"`
+	SchoolInfo          *simplifiedSchool `json:"schoolInfo"`
+	StartDate           time.Time         `json:"startDate"`
 }
 
 type application struct {
@@ -198,7 +212,7 @@ func main() {
 			}
 		case '5':
 			fmt.Printf("\n~~Testing Option~~\n")
-			profileChan <- simplifiedUser{Username: "nyamedev", isParticipant: true, startDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
+			profileChan <- simplifiedUser{Username: "nyamedev", IsParticipant: true, StartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
 		case '6':
 			fmt.Printf("\n~~Quitting~~\n")
 			os.Exit(0)
