@@ -39,6 +39,7 @@ type simplifiedUser struct {
 	StartDate           time.Time         `json:"startDate"`
 }
 
+//Application dependencies to be injected
 type application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger
