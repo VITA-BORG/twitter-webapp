@@ -96,5 +96,31 @@ func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "School Added")
+
+	//TODO check form values.  Make sure they are within limits
+
+	r.ParseForm()
+
+	toScrape := &simplifiedUser{}
+	toInsert := &simplifiedSchool{}
+
+	toInsert.Name = r.FormValue("name")
+	toInsert.City = r.FormValue("city")
+	toInsert.State = r.FormValue("state")
+	toInsert.Country = r.FormValue("country")
+	toInsert.TwitterHandle = r.FormValue("handle")
+	if r.FormValue("top-rated") == "true" {
+		toInsert.TopRated = true
+	}
+	if r.FormValue("public") == "true" {
+		toInsert.Public = true
+	}
+
+	toScrape.IsSchool = true
+	toScrape.SchoolInfo = toInsert
+	toScrape.Username = toInsert.TwitterHandle
+
+	app.profileChan <- toScrape
+
+	fmt.Fprintf(w, r.FormValue("top-rated"))
 }

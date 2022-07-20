@@ -53,10 +53,10 @@ type application struct {
 	secretKey      string
 	followerClient http.Client
 	//expects simplifiedUser struct
-	profileChan  chan simplifiedUser
-	followChan   chan simplifiedUser
-	followerChan chan simplifiedUser
-	tweetsChan   chan simplifiedUser
+	profileChan  chan *simplifiedUser
+	followChan   chan *simplifiedUser
+	followerChan chan *simplifiedUser
+	tweetsChan   chan *simplifiedUser
 	//statuses of channels
 	profileStatus   string
 	followStatus    string
@@ -114,10 +114,10 @@ func main() {
 
 	//Initializing channels
 	infoLog.Println("Initializing channels...")
-	profileChan := make(chan simplifiedUser)
-	followChan := make(chan simplifiedUser)
-	followerChan := make(chan simplifiedUser)
-	tweetsChan := make(chan simplifiedUser)
+	profileChan := make(chan *simplifiedUser)
+	followChan := make(chan *simplifiedUser)
+	followerChan := make(chan *simplifiedUser)
+	tweetsChan := make(chan *simplifiedUser)
 
 	defer close(profileChan)
 	defer close(followChan)
@@ -213,7 +213,7 @@ func main() {
 			}
 		case '5':
 			fmt.Printf("\n~~Testing Option~~\n")
-			profileChan <- simplifiedUser{Username: "nyamedev", IsParticipant: true, StartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
+			profileChan <- &simplifiedUser{Username: "nyamedev", IsParticipant: true, StartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
 		case '6':
 			fmt.Printf("\n~~Quitting~~\n")
 			os.Exit(0)
