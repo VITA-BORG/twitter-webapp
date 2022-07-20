@@ -30,6 +30,7 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) users(w http.ResponseWriter, r *http.Request) {
 	Users, err := models.GetAllParticipants(app.connection)
+	numUsers, err := models.GetUserCount(app.connection)
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -39,7 +40,8 @@ func (app *application) users(w http.ResponseWriter, r *http.Request) {
 		ProfileStatus:   app.profileStatus,
 		FollowerStatus:  app.followStatus,
 		FollowingStatus: app.followingStatus,
-		NumberOfUsers:   len(Users),
+		NumberOfUsers:   numUsers,
+		NumParticipants: len(Users),
 	}
 
 	app.renderTemplate(w, http.StatusOK, "users.html", data)
@@ -68,7 +70,17 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
-	data := &templateData{}
+	schools, err := models.GetAllSchools(app.connection)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	data := &templateData{
+		Schools: schools,
+	}
+
+	app.populateWorkerStatus(data)
+
 	app.renderTemplate(w, http.StatusOK, "userAdd.html", data)
 	fmt.Fprintf(w, "User Add Form")
 }
@@ -80,6 +92,7 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 	data := &templateData{}
 	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
+	fmt.Fprintf(w, "School Add Form")
 }
 
 func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {

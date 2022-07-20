@@ -2,8 +2,10 @@
 
 {{define "main"}}
     <h1>Users in the system</h1>
+    <h2>Participants</h2>
+    <p>Number of Participants: {{.NumParticipants}}</p>
+    <a id="add-participant" href="/users/add">Add Participant</a>
     <div class="user-table">
-        <h2>Participants</h2>
         <table>
             <tr>
                 <th>Name</th>
@@ -31,5 +33,4 @@
         {{end}}
         </table>
     </div>
-    <p> Nothing to see here right now </p>
 {{end}}

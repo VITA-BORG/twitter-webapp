@@ -137,3 +137,15 @@ func GetAllParticipants(conn *pgx.Conn) ([]User, error) {
 	}
 	return users, nil
 }
+
+//GetUserCount returns the number of users in the database.
+func GetUserCount(conn *pgx.Conn) (int, error) {
+	var count int
+	var err error
+	statement := "SELECT COUNT(*) FROM users"
+	err = conn.QueryRow(context.Background(), statement).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

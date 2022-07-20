@@ -71,3 +71,23 @@ func NumberOfSchools(conn *pgx.Conn) (int, error) {
 	err := conn.QueryRow(context.Background(), statement).Scan(&count)
 	return count, err
 }
+
+//GetAllSchools returns a slice of all schools in the database.
+func GetAllSchools(conn *pgx.Conn) ([]School, error) {
+	var schools []School
+	var err error
+	statement := "SELECT * FROM schools"
+	rows, err := conn.Query(context.Background(), statement)
+	if err != nil {
+		return schools, err
+	}
+	for rows.Next() {
+		var school School
+		err = rows.Scan(&school.ID, &school.Name, &school.TopRated, &school.Public, &school.City, &school.State, &school.Country, &school.User_ID)
+		if err != nil {
+			return schools, err
+		}
+		schools = append(schools, school)
+	}
+	return schools, err
+}

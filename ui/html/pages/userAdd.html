@@ -5,6 +5,13 @@
     <div>
         <label>Handle</label>
         <input type="text" name="handle" value="">
+        <br>
+        <label>School</label>
+        <select name="school" id="school">
+            {{range .Schools}}
+            <option value="{{.Name}}">{{.Name}}</option>
+            {{end}}
+        </select>
     </div>
     <div>
         <label>Options:</label>

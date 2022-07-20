@@ -20,6 +20,7 @@ type templateData struct {
 	Users           []models.User
 	Schools         []models.School
 	NumberOfUsers   int
+	NumParticipants int
 }
 
 var functions = template.FuncMap{
@@ -97,4 +98,5 @@ func (app *application) populateWorkerStatus(data *templateData) {
 	data.FollowerStatus = app.followStatus
 	data.FollowingStatus = app.followingStatus
 	data.ProfileStatus = app.profileStatus
+	data.NumberOfUsers = len(app.getAllUsernames())
 }
