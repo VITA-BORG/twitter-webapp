@@ -5,4 +5,31 @@
 <h2>Schools in the System</h2>
 
 <h2>Add a School</h2>
+<form action="/schools" method="POST">
+    <div>
+        <label>Name</label>
+        <input type="text" name="name" value="">
+        <br>
+        <label>City</label>
+        <input type="text" name="city" value="">
+        <br>
+        <label>State</label>
+        <input type="text" name="state" value="">
+        <br>
+        <label>Country</label>
+        <input type="text" name="country" value="">
+        <br>
+        <label>Twitter Handle</label>
+        <input type="text" name="handle" value="">
+    </div>
+    <div>
+        <label>Options</label>
+        <input type="checkbox" name="top-rated" value="true">Top Rated
+        <br>
+        <input type="checkbox" name="public" value="true">Public
+    </div>
+    <div>
+        <input type="submit" value="Submit">
+    </div>
+</form>
 {{end}}
