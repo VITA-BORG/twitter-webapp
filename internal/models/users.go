@@ -118,8 +118,8 @@ func GetAllUsernames(conn *pgx.Conn) ([]string, error) {
 }
 
 //GetAllParticipants returns a list of all participants in the database.
-func GetAllParticipants(conn *pgx.Conn) ([]*User, error) {
-	var users []*User
+func GetAllParticipants(conn *pgx.Conn) ([]User, error) {
+	var users []User
 	var err error
 	statement := "SELECT * FROM users WHERE is_participant=TRUE"
 	rows, err := conn.Query(context.Background(), statement)
@@ -133,7 +133,7 @@ func GetAllParticipants(conn *pgx.Conn) ([]*User, error) {
 		if err != nil {
 			return nil, err
 		}
-		users = append(users, &user)
+		users = append(users, user)
 	}
 	return users, nil
 }

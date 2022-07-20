@@ -17,7 +17,8 @@ type templateData struct {
 	FollowerStatus  string
 	FollowingStatus string
 	ProfileStatus   string
-	Users           []string
+	Users           []models.User
+	Schools         []models.School
 	NumberOfUsers   int
 }
 
@@ -89,4 +90,11 @@ func (app *application) renderTemplate(w http.ResponseWriter, status int, page s
 	w.WriteHeader(status)
 	buf.WriteTo(w)
 
+}
+
+//populateWorkerStatus is a helper function that populates the FollowerStatus and FollowingStatus fields of the templateData struct.
+func (app *application) populateWorkerStatus(data *templateData) {
+	data.FollowerStatus = app.followStatus
+	data.FollowingStatus = app.followingStatus
+	data.ProfileStatus = app.profileStatus
 }

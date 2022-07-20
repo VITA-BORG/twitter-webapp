@@ -17,7 +17,9 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/static/", http.StripPrefix("/static", fileServer))
 
 	router.HandlerFunc(http.MethodGet, "/", app.home)
+	router.HandlerFunc(http.MethodGet, "/schools", app.schoolAddGet)
 	router.HandlerFunc(http.MethodGet, "/users", app.users)
+	router.HandlerFunc(http.MethodGet, "/users/view/:username", app.userView)
 	router.HandlerFunc(http.MethodGet, "/users/add", app.userAddGet)
 	router.HandlerFunc(http.MethodPost, "/users/add", app.userAddPost)
 

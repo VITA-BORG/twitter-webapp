@@ -2,10 +2,34 @@
 
 {{define "main"}}
     <h1>Users in the system</h1>
-    {{range .Users}}
-        <a class="dashboard-list" href='/api/users?handle={{.}}'>{{.}}</a>
-    {{else}}
-        <p>No users in the system</p>
-    {{end}}
+    <div class="user-table">
+        <h2>Participants</h2>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Handle</th>
+                <th>Gender</th>
+                <th>UID</th>
+            </tr>
+        {{range .Users}}
+            <tr>
+                <td>
+                    <a class="dashboard-list" href='/users/view/{{.Handle}}'>{{.ProfileName}}</a>
+                </td>
+                <td>
+                    <p>{{.Handle}}</p>
+                </td>
+                <td>
+                    <p>{{.Gender}}</p>
+                </td>
+                <td>
+                    <p>{{.ID}}</p>
+                </td>
+            </tr>
+        {{else}}
+            <p>No users in the system</p>
+        {{end}}
+        </table>
+    </div>
     <p> Nothing to see here right now </p>
 {{end}}

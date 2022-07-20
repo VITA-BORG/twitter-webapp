@@ -3,10 +3,37 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+func (app *application) userView(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	username := params.ByName("username")
+
+	user, err := app.getUserByHandle(username)
+	if err != nil {
+		app.notFound(w)
+		return
+	}
+
+	data := &templateData{
+		CurrentUser: *user,
+	}
+
+	app.populateWorkerStatus(data)
+
+	app.renderTemplate(w, http.StatusOK, "userView.html", data)
+}
+
 func (app *application) users(w http.ResponseWriter, r *http.Request) {
-	Users := app.getAllUsernames()
+	Users, err := models.GetAllParticipants(app.connection)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 	data := &templateData{
 		Users:           Users,
 		ProfileStatus:   app.profileStatus,
@@ -48,4 +75,13 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "User Added")
+}
+
+func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
+	data := &templateData{}
+	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
+}
+
+func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "School Added")
 }
