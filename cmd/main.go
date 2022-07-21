@@ -37,6 +37,8 @@ type simplifiedUser struct {
 	ParticipantSchoolID int               `json:"participantSchool"`
 	SchoolInfo          *simplifiedSchool `json:"schoolInfo"`
 	StartDate           time.Time         `json:"startDate"`
+	ScrapeConnections   bool              `json:"scrape_connections"`
+	ScrapeContent       bool              `json:"scrape_content"`
 }
 
 //Application dependencies to be injected

@@ -86,6 +86,34 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
+
+	r.ParseForm()
+
+	toScrape := &simplifiedUser{}
+
+	toScrape.Username = r.FormValue("handle")
+	toScrape.IsParticipant = true
+	toScrape.IsSchool = false
+
+	if r.FormValue("follows") == "true" {
+		toScrape.ScrapeConnections = true
+	}
+
+	if r.FormValue("content") == "true" {
+		toScrape.ScrapeContent = true
+	}
+
+	schoolName := r.FormValue("school")
+	school, err := models.GetSchoolByName(app.connection, schoolName)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	toScrape.ParticipantSchoolID = school.ID
+
+	app.profileChan <- toScrape
+
 	fmt.Fprintf(w, "User Added")
 }
 
