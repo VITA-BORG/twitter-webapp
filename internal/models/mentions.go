@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Mention struct {
@@ -13,7 +13,7 @@ type Mention struct {
 }
 
 //InsertMention inserts a Mention object into the database.  No checking.
-func InsertMention(conn *pgx.Conn, mention *Mention) error {
+func InsertMention(conn *pgxpool.Pool, mention *Mention) error {
 	statement := "INSERT INTO mentions(tweet_id, user_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, mention.TweetID, mention.UserID)
 	return err
@@ -21,7 +21,7 @@ func InsertMention(conn *pgx.Conn, mention *Mention) error {
 
 //GetMentionByTID returns a Mention object from the database if they exist.  Otherwise, it returns nil.
 //TODO: Return multiple mentions
-func GetMentionByTID(conn *pgx.Conn, ID int64) (Mention, error) {
+func GetMentionByTID(conn *pgxpool.Pool, ID int64) (Mention, error) {
 	var mention Mention
 	var err error
 	statement := "SELECT * FROM mentions WHERE tweet_id=$1"
@@ -30,7 +30,7 @@ func GetMentionByTID(conn *pgx.Conn, ID int64) (Mention, error) {
 }
 
 //MentionExists checks if a mention exists in the database.
-func MentionExists(conn *pgx.Conn, mention *Mention) bool {
+func MentionExists(conn *pgxpool.Pool, mention *Mention) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM mentions WHERE tweet_id=$1 AND user_id=$2)"
 	err := conn.QueryRow(context.Background(), statement, mention.TweetID, mention.UserID).Scan(&exists)

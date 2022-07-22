@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Follow struct {
@@ -18,14 +18,14 @@ type Follow struct {
 }
 
 //InsertFollow inserts a Follow object into the database.  No checking.
-func InsertFollow(conn *pgx.Conn, follow *Follow) error {
+func InsertFollow(conn *pgxpool.Pool, follow *Follow) error {
 	statement := "INSERT INTO follows(follower_id, followee_id, created_at, collected_at) VALUES($1, $2, $3, $4)"
 	_, err := conn.Exec(context.Background(), statement, follow.FollowerID, follow.FolloweeID, follow.CreatedAt, follow.CollectedAt)
 	return err
 }
 
 //GetFollowers retrieves all followers of a user returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
-func GetFollowers(conn *pgx.Conn, uid int64) ([]*Follow, error) {
+func GetFollowers(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 	var follows []*Follow
 	var err error
 	statement := "SELECT * FROM follows WHERE followee_id=$1"
@@ -46,7 +46,7 @@ func GetFollowers(conn *pgx.Conn, uid int64) ([]*Follow, error) {
 }
 
 //GetFollows retrieves all follows of a user and returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
-func GetFollows(conn *pgx.Conn, uid int64) ([]*Follow, error) {
+func GetFollows(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 	var follows []*Follow
 	var err error
 	statement := "SELECT * FROM follows WHERE follower_id=$1"
@@ -67,7 +67,7 @@ func GetFollows(conn *pgx.Conn, uid int64) ([]*Follow, error) {
 }
 
 //FollowExists checks if a follow exists in the database.  Returns true if it does.  Otherwise, it returns false.
-func FollowExists(conn *pgx.Conn, follow *Follow) bool {
+func FollowExists(conn *pgxpool.Pool, follow *Follow) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id=$1 AND followee_id=$2)"
 	err := conn.QueryRow(context.Background(), statement, follow.FollowerID, follow.FolloweeID).Scan(&exists)
@@ -78,7 +78,7 @@ func FollowExists(conn *pgx.Conn, follow *Follow) bool {
 }
 
 //AddFollows takes a slice of pointers to Follow objects and adds them to the database if they do not already exist.
-func AddFollows(conn *pgx.Conn, follows []*Follow) error {
+func AddFollows(conn *pgxpool.Pool, follows []*Follow) error {
 	for _, follow := range follows {
 		if !FollowExists(conn, follow) {
 			err := InsertFollow(conn, follow)

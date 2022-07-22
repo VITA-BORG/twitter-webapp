@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type School struct {
@@ -18,14 +18,14 @@ type School struct {
 }
 
 //InsertSchool inserts a School object into the database.  No checking.
-func InsertSchool(conn *pgx.Conn, school *School) error {
+func InsertSchool(conn *pgxpool.Pool, school *School) error {
 	statement := "INSERT INTO schools(id, name, top_rated, public, city, state_province, country, user_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8)"
 	_, err := conn.Exec(context.Background(), statement, school.ID, school.Name, school.TopRated, school.Public, school.City, school.State, school.Country, school.User_ID)
 	return err
 }
 
 //GetSchoolByID returns a School object from the database if they exist.  Otherwise, it returns nil.
-func GetSchoolByID(conn *pgx.Conn, ID int64) (*School, error) {
+func GetSchoolByID(conn *pgxpool.Pool, ID int64) (*School, error) {
 	var school School
 	var err error
 	statement := "SELECT * FROM schools WHERE id=$1"
@@ -34,7 +34,7 @@ func GetSchoolByID(conn *pgx.Conn, ID int64) (*School, error) {
 }
 
 //GetSchoolByName returns a School object from the database if they exist.  Otherwise, it returns nil.
-func GetSchoolByName(conn *pgx.Conn, name string) (*School, error) {
+func GetSchoolByName(conn *pgxpool.Pool, name string) (*School, error) {
 	var school School
 	var err error
 	statement := "SELECT * FROM schools WHERE name=$1"
@@ -43,7 +43,7 @@ func GetSchoolByName(conn *pgx.Conn, name string) (*School, error) {
 }
 
 //SchoolExists checks if a school exists in the database.
-func SchoolExists(conn *pgx.Conn, ID int64) bool {
+func SchoolExists(conn *pgxpool.Pool, ID int64) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM schools WHERE id=$1)"
 	err := conn.QueryRow(context.Background(), statement, ID).Scan(&exists)
@@ -54,7 +54,7 @@ func SchoolExists(conn *pgx.Conn, ID int64) bool {
 }
 
 //SchoolUserIDExists checks if a school user ID exists in the database.
-func SchoolUserIDExists(conn *pgx.Conn, ID int64) bool {
+func SchoolUserIDExists(conn *pgxpool.Pool, ID int64) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM schools WHERE user_id=$1)"
 	err := conn.QueryRow(context.Background(), statement, ID).Scan(&exists)
@@ -65,7 +65,7 @@ func SchoolUserIDExists(conn *pgx.Conn, ID int64) bool {
 }
 
 //NumberOfSchools returns the number of schools in the database.
-func NumberOfSchools(conn *pgx.Conn) (int, error) {
+func NumberOfSchools(conn *pgxpool.Pool) (int, error) {
 	var count int
 	statement := "SELECT COUNT(*) FROM schools"
 	err := conn.QueryRow(context.Background(), statement).Scan(&count)
@@ -73,7 +73,7 @@ func NumberOfSchools(conn *pgx.Conn) (int, error) {
 }
 
 //GetAllSchools returns a slice of all schools in the database.
-func GetAllSchools(conn *pgx.Conn) ([]School, error) {
+func GetAllSchools(conn *pgxpool.Pool) ([]School, error) {
 	var schools []School
 	var err error
 	statement := "SELECT * FROM schools"

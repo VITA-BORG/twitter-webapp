@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
@@ -87,23 +89,61 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 
 	toScrape := &simplifiedUser{}
 
-	toScrape.Username = r.FormValue("handle")
+	toScrape.Username = r.PostForm.Get("handle")
 	toScrape.IsParticipant = true
 	toScrape.IsSchool = false
 
-	if r.FormValue("follows") == "true" {
+	if r.PostForm.Get("follows") == "true" {
 		toScrape.ScrapeConnections = true
 	}
 
-	if r.FormValue("content") == "true" {
+	if r.PostForm.Get("content") == "true" {
 		toScrape.ScrapeContent = true
 	}
 
-	schoolName := r.FormValue("school")
+	schoolName := r.PostForm.Get("school")
+
+	dateForm := r.PostForm.Get("start-date")
+
+	//validate form input
+	fieldErrors := make(map[string]string)
+
+	if strings.TrimSpace(toScrape.Username) == "" {
+		fieldErrors["handle"] = "Handle is required"
+	}
+
+	if strings.TrimSpace(schoolName) == "" {
+		fieldErrors["school"] = "School is required"
+	}
+
+	if strings.TrimSpace(dateForm) == "" {
+		fieldErrors["start-date"] = "Start date is required"
+	} else if dateForm == "yyyy-mm-dd" {
+		fieldErrors["start-date"] = "Start date is required"
+	}
+
+	if len(fieldErrors) > 0 {
+		fmt.Fprint(w, fieldErrors)
+		return
+	}
+
+	startDate, err := time.Parse("2006-01-02", strings.TrimSpace(dateForm))
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	toScrape.StartDate = startDate
+
 	school, err := models.GetSchoolByName(app.connection, schoolName)
 	if err != nil {
 		app.serverError(w, err)
@@ -125,23 +165,49 @@ func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 
-	//TODO check form values.  Make sure they are within limits
-
 	r.ParseForm()
 
 	toScrape := &simplifiedUser{}
 	toInsert := &simplifiedSchool{}
 
-	toInsert.Name = r.FormValue("name")
-	toInsert.City = r.FormValue("city")
-	toInsert.State = r.FormValue("state")
-	toInsert.Country = r.FormValue("country")
-	toInsert.TwitterHandle = r.FormValue("handle")
-	if r.FormValue("top-rated") == "true" {
+	toInsert.Name = strings.TrimSpace(r.PostForm.Get("name"))
+	toInsert.City = strings.ToLower(strings.TrimSpace(r.PostForm.Get("city")))
+	toInsert.State = strings.ToLower(strings.TrimSpace(r.PostForm.Get("state")))
+	toInsert.Country = strings.ToLower(strings.TrimSpace(r.PostForm.Get("country")))
+	toInsert.TwitterHandle = strings.ToLower(strings.TrimSpace(r.PostForm.Get("handle")))
+	if r.PostForm.Get("top-rated") == "true" {
 		toInsert.TopRated = true
 	}
-	if r.FormValue("public") == "true" {
+	if r.PostForm.Get("public") == "true" {
 		toInsert.Public = true
+	}
+
+	//validate form input
+	fieldErrors := make(map[string]string)
+
+	if toInsert.Name == "" {
+		fieldErrors["name"] = "Name is required"
+	}
+
+	if toInsert.City == "" {
+		fieldErrors["city"] = "City is required"
+	}
+
+	if toInsert.State == "" {
+		fieldErrors["state"] = "State is required"
+	}
+
+	if toInsert.Country == "" {
+		fieldErrors["country"] = "Country is required"
+	}
+
+	if toInsert.TwitterHandle == "" {
+		fieldErrors["handle"] = "Handle is required"
+	}
+
+	if len(fieldErrors) > 0 {
+		fmt.Fprint(w, fieldErrors)
+		return
 	}
 
 	toScrape.IsSchool = true

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Tweet struct {
@@ -23,14 +23,14 @@ type Tweet struct {
 }
 
 //InsertTweet inserts a Tweet object into the database.  No checking.
-func InsertTweet(conn *pgx.Conn, tweet *Tweet) error {
+func InsertTweet(conn *pgxpool.Pool, tweet *Tweet) error {
 	statement := "INSERT INTO tweets(id, conversation_id, text, posted_at, url, user_id, is_retweet, retweet_id, likes, retweets, replies, collected_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
 	_, err := conn.Exec(context.Background(), statement, tweet.ID, tweet.ConversationID, tweet.Text, tweet.PostedAt, tweet.Url, tweet.UserID, tweet.IsRetweet, tweet.RetweetID, tweet.Likes, tweet.Retweets, tweet.Replies, tweet.CollectedAt)
 	return err
 }
 
 //GetTweet returns a Tweet object from the database if they exist.  Otherwise, it returns nil.
-func GetTweet(conn *pgx.Conn, ID int64) (*Tweet, error) {
+func GetTweet(conn *pgxpool.Pool, ID int64) (*Tweet, error) {
 	var tweet Tweet
 	var err error
 	statement := "SELECT * FROM tweets WHERE id=$1"
@@ -39,7 +39,7 @@ func GetTweet(conn *pgx.Conn, ID int64) (*Tweet, error) {
 }
 
 //TweetExists checks if a tweet exists in the database.
-func TweetExists(conn *pgx.Conn, ID int64) bool {
+func TweetExists(conn *pgxpool.Pool, ID int64) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM tweets WHERE id=$1)"
 	err := conn.QueryRow(context.Background(), statement, ID).Scan(&exists)

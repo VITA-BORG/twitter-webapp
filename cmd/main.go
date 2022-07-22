@@ -12,7 +12,7 @@ import (
 
 	"flag"
 
-	pgx "github.com/jackc/pgx/v4"
+	pgxpool "github.com/jackc/pgx/v4/pgxpool"
 	godotenv "github.com/joho/godotenv"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
@@ -45,7 +45,7 @@ type simplifiedUser struct {
 type application struct {
 	errorLog       *log.Logger
 	infoLog        *log.Logger
-	connection     *pgx.Conn
+	connection     *pgxpool.Pool
 	scraper        twitterscraper.Scraper
 	templateCache  map[string]*template.Template
 	debug          bool
@@ -92,11 +92,11 @@ func main() {
 	//Connects to the database using .env variables
 	infoLog.Println("Connecting to database...")
 	dburl := "postgres://" + os.Getenv("DB_USER") + ":" + os.Getenv("DB_PASS") + "@" + os.Getenv("DB_HOST") + ":" + os.Getenv("DB_PORT") + "/" + os.Getenv("DB_NAME")
-	conn, err := pgx.Connect(context.Background(), dburl)
+	conn, err := pgxpool.Connect(context.Background(), dburl)
 	if err != nil {
 		errLog.Fatal(err)
 	}
-	defer conn.Close(context.Background())
+	defer conn.Close()
 	infoLog.Println("Connected to database")
 
 	//Loads web address and sets up server structs for dependency injection

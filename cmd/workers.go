@@ -104,7 +104,7 @@ func (app *application) ProfileWorker() {
 		//adds uid to simplifiedUser struct
 		curr.ID = user.ID
 		//Sends the simplifiedUser struct to the tweets channel.
-		if curr.IsParticipant {
+		if curr.IsParticipant && curr.ScrapeContent {
 			app.tweetsChan <- curr
 		}
 
@@ -112,17 +112,17 @@ func (app *application) ProfileWorker() {
 		if user.Followers > app.followLimit {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
-			continue
+		} else if curr.ScrapeConnections {
+			app.followerChan <- curr
 		}
 
-		app.followerChan <- curr
 		//checks if user following exceeds limit, if so, it does not scrape the following
 		if user.Following > app.followLimit {
 			app.infoLog.Println("User has too many following, not scraping following")
 			app.profileStatus = "idle"
-			continue
+		} else if curr.ScrapeConnections {
+			app.followChan <- curr
 		}
-		app.followChan <- curr
 		app.profileStatus = "idle"
 
 	}

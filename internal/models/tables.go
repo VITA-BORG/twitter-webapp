@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows"}
 
 //DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
-func DeleteTables(conn *pgx.Conn) error {
+func DeleteTables(conn *pgxpool.Pool) error {
 	var statement string
 	for _, table := range tables {
 		statement = fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", table)
@@ -29,7 +29,7 @@ func DeleteTables(conn *pgx.Conn) error {
 }
 
 //CreateTables creates all tables in the database.  Only use when testing or when you want to start from scratch.
-func CreateTables(conn *pgx.Conn) error {
+func CreateTables(conn *pgxpool.Pool) error {
 
 	statement := "CREATE TYPE gender AS ENUM ('M', 'F', 'X')"
 	_, err := conn.Exec(context.Background(), statement)
