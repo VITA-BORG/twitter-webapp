@@ -3,12 +3,34 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
+
+type userAddForm struct {
+	Handle      string `schema:"handle"`
+	School      string `schema:"school"`
+	StartDate   string `schema:"start-date"`
+	Follows     bool   `schema:"follows"`
+	Content     bool   `schema:"content"`
+	Cohort      string `schema:"cohort"`
+	FieldErrors map[string]string
+}
+
+type schoolAddForm struct {
+	Name        string `schema:"name"`
+	City        string `schema:"city"`
+	State       string `schema:"state"`
+	Country     string `schema:"country"`
+	Handle      string `schema:"handle"`
+	TopRated    bool   `schema:"top-rated"`
+	Public      bool   `schema:"public"`
+	FieldErrors map[string]string
+}
 
 func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
@@ -21,8 +43,28 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	student, err := models.GetStudentByID(app.connection, user.ID)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	school, err := models.GetSchoolByID(app.connection, student.SchoolID)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	schools, err := models.GetAllSchools(app.connection)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
 	data := &templateData{
-		CurrentUser: *user,
+		CurrentUser:       *user,
+		CurrentUserSchool: *school,
+		Schools:           schools,
 	}
 
 	app.populateWorkerStatus(data)
@@ -32,6 +74,10 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) users(w http.ResponseWriter, r *http.Request) {
 	Users, err := models.GetAllParticipants(app.connection)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 	numUsers, err := models.GetUserCount(app.connection)
 	if err != nil {
 		app.serverError(w, err)
@@ -95,6 +141,16 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form := userAddForm{
+		Handle:      r.PostForm.Get("handle"),
+		School:      r.PostForm.Get("school"),
+		StartDate:   r.PostForm.Get("start-date"),
+		Cohort:      r.PostForm.Get("cohort"),
+		Follows:     r.PostForm.Get("follows") == "true",
+		Content:     r.PostForm.Get("content") == "true",
+		FieldErrors: map[string]string{},
+	}
+
 	toScrape := &simplifiedUser{}
 
 	toScrape.Username = r.PostForm.Get("handle")
@@ -116,49 +172,75 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 	//validate form input
 	fieldErrors := make(map[string]string)
 
+	cohort, err := strconv.Atoi(r.PostForm.Get("cohort"))
+	if err != nil {
+		form.FieldErrors["cohort"] = "Cohort must be a number"
+		return
+	}
+
 	if strings.TrimSpace(toScrape.Username) == "" {
-		fieldErrors["handle"] = "Handle is required"
+		form.FieldErrors["handle"] = "Handle is required"
 	}
 
 	if strings.TrimSpace(schoolName) == "" {
-		fieldErrors["school"] = "School is required"
+		form.FieldErrors["school"] = "School is required"
 	}
 
 	if strings.TrimSpace(dateForm) == "" {
-		fieldErrors["start-date"] = "Start date is required"
+		form.FieldErrors["start-date"] = "Start date is required"
 	} else if dateForm == "yyyy-mm-dd" {
-		fieldErrors["start-date"] = "Start date is required"
+		form.FieldErrors["start-date"] = "Start date is required"
 	}
 
+	//if there are any errors, render the form again with the field errors and repopulated fields
 	if len(fieldErrors) > 0 {
-		fmt.Fprint(w, fieldErrors)
+		schools, err := models.GetAllSchools(app.connection)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+		data := &templateData{
+			Schools: schools,
+		}
+		app.populateWorkerStatus(data)
+		data.Form = form
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
 		return
 	}
+
+	schoolID, err := models.GetSchoolIDByName(app.connection, schoolName)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	toScrape.ParticipantCohort = cohort
+	toScrape.ParticipantSchoolID = schoolID
 
 	startDate, err := time.Parse("2006-01-02", strings.TrimSpace(dateForm))
 
 	if err != nil {
-		app.serverError(w, err)
+		startDate = time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return
 	}
 
 	toScrape.StartDate = startDate
 
-	school, err := models.GetSchoolByName(app.connection, schoolName)
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-
-	toScrape.ParticipantSchoolID = school.ID
-
+	//sends the user to the scraper to scrape the user's profile
 	app.profileChan <- toScrape
 
-	fmt.Fprintf(w, "User Added")
+	http.Redirect(w, r, "/users/add", http.StatusSeeOther)
 }
 
 func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 	data := &templateData{}
+	app.populateWorkerStatus(data)
+	schools, err := models.GetAllSchools(app.connection)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	data.Schools = schools
 	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
 	fmt.Fprintf(w, "School Add Form")
 }
@@ -166,6 +248,17 @@ func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 
 	r.ParseForm()
+
+	form := schoolAddForm{
+		Name:        r.PostForm.Get("name"),
+		City:        r.PostForm.Get("city"),
+		State:       r.PostForm.Get("state"),
+		Country:     r.PostForm.Get("country"),
+		Handle:      r.PostForm.Get("handle"),
+		TopRated:    r.PostForm.Get("top-rated") == "true",
+		Public:      r.PostForm.Get("public") == "true",
+		FieldErrors: map[string]string{},
+	}
 
 	toScrape := &simplifiedUser{}
 	toInsert := &simplifiedSchool{}
@@ -186,26 +279,37 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 	fieldErrors := make(map[string]string)
 
 	if toInsert.Name == "" {
-		fieldErrors["name"] = "Name is required"
+		form.FieldErrors["name"] = "Name is required"
 	}
 
 	if toInsert.City == "" {
-		fieldErrors["city"] = "City is required"
+		form.FieldErrors["city"] = "City is required"
 	}
 
 	if toInsert.State == "" {
-		fieldErrors["state"] = "State is required"
+		form.FieldErrors["state"] = "State is required"
 	}
 
 	if toInsert.Country == "" {
-		fieldErrors["country"] = "Country is required"
+		form.FieldErrors["country"] = "Country is required"
 	}
 
 	if toInsert.TwitterHandle == "" {
-		fieldErrors["handle"] = "Handle is required"
+		form.FieldErrors["handle"] = "Handle is required"
 	}
 
 	if len(fieldErrors) > 0 {
+		data := &templateData{
+			Form: form,
+		}
+		schools, err := models.GetAllSchools(app.connection)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+		data.Schools = schools
+		app.populateWorkerStatus(data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "schoolAdd.html", data)
 		fmt.Fprint(w, fieldErrors)
 		return
 	}
@@ -216,5 +320,5 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 
 	app.profileChan <- toScrape
 
-	fmt.Fprintf(w, r.FormValue("top-rated"))
+	http.Redirect(w, r, "/schools", http.StatusSeeOther)
 }

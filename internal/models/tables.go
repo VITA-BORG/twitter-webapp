@@ -98,6 +98,17 @@ func CreateTables(conn *pgxpool.Pool) error {
 		return err
 	}
 
+	//Creates student table
+	statement = `create table students(
+		school_id int references schools(id) ON DELETE CASCADE,
+		user_id bigint references users(id) ON DELETE CASCADE,
+		cohort int
+	)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
 	//Creates replies table
 	statement = `create table replies(
 		id serial primary key,

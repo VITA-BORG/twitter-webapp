@@ -16,6 +16,14 @@ func (app *application) ProfileWorker() {
 		app.profileStatus = fmt.Sprintf("scraping %s", curr.Username)
 		//always scrapes user because there will be updates
 		user, err := app.scrapeUser(curr.Username)
+		//checks if user is a participant.  If they are, it adds the relation with the school if it doesn't exist already
+		if curr.IsParticipant {
+			//add logic to create relation with school if it doesn't exist
+			user.IsParticipant = true
+		} else {
+			user.IsParticipant = false
+		}
+
 		if err != nil {
 			app.errorLog.Println("Error scraping user:", err)
 			continue
@@ -42,6 +50,26 @@ func (app *application) ProfileWorker() {
 				continue
 			}
 		}
+
+		//checks if user is participant, and adds them to the students table if they are
+		if curr.IsParticipant {
+			//checks if student exists, adds them to the database if they don't
+			if !models.StudentExists(app.connection, user.ID) {
+				student := &models.Student{
+					UserID:   user.ID,
+					SchoolID: curr.ParticipantSchoolID,
+					Cohort:   curr.ParticipantCohort,
+				}
+				err = models.InsertStudent(app.connection, student)
+				if err != nil {
+					app.errorLog.Println("Error adding student to database")
+					app.errorLog.Println(err)
+					app.profileStatus = "idle"
+					continue
+				}
+			}
+		}
+
 		//checks if the user is a school.  If they are, it adds them to the school database including user database.
 		if curr.IsSchool {
 			app.infoLog.Println("User is a school")
@@ -94,13 +122,6 @@ func (app *application) ProfileWorker() {
 			}
 		}
 
-		//checks if user is a participant.  If they are, it adds the relation with the school if it doesn't exist already
-		if curr.IsParticipant {
-			//add logic to create relation with school if it doesn't exist
-			user.IsParticipant = true
-		} else {
-			user.IsParticipant = false
-		}
 		//adds uid to simplifiedUser struct
 		curr.ID = user.ID
 		//Sends the simplifiedUser struct to the tweets channel.

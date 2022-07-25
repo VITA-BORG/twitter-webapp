@@ -13,14 +13,16 @@ import (
 
 //Containst the data that will be passed to the templates.
 type templateData struct {
-	CurrentUser     models.User
-	FollowerStatus  string
-	FollowingStatus string
-	ProfileStatus   string
-	Users           []models.User
-	Schools         []models.School
-	NumberOfUsers   int
-	NumParticipants int
+	CurrentUser       models.User
+	CurrentUserSchool models.School
+	FollowerStatus    string
+	FollowingStatus   string
+	ProfileStatus     string
+	Users             []models.User
+	Schools           []models.School
+	NumberOfUsers     int
+	NumParticipants   int
+	Form              any
 }
 
 var functions = template.FuncMap{

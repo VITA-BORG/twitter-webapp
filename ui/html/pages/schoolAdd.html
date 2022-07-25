@@ -4,6 +4,25 @@
 <h1>Schools</h1>
 <h2>Schools in the System</h2>
 
+<div class="user-table">
+    <table>
+        <tr>
+            <th>School Name</th>
+            <th>School City</th>
+            <th>School Type</th>
+            <th>Rating</th>
+        </tr>
+        {{range .Schools}}
+        <tr>
+            <td>{{.Name}}</td>
+            <td>{{.City}}</td>
+            <td>{{if .Public}} Public {{else}} Private {{end}}</td>
+            <td>{{if .TopRated}} Top Rated {{else}} Not Top Rated {{end}}</td>
+        </tr>
+        {{end}}
+    </table>
+</div>
+
 <h2>Add a School</h2>
 <form action="/schools" method="POST">
     <div>

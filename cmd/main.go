@@ -35,6 +35,7 @@ type simplifiedUser struct {
 	IsSchool            bool              `json:"is_school"`
 	IsParticipant       bool              `json:"isParticipant"`
 	ParticipantSchoolID int               `json:"participantSchool"`
+	ParticipantCohort   int               `json:"participantCohort"`
 	SchoolInfo          *simplifiedSchool `json:"schoolInfo"`
 	StartDate           time.Time         `json:"startDate"`
 	ScrapeConnections   bool              `json:"scrape_connections"`

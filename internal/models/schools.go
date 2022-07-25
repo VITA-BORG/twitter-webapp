@@ -25,7 +25,7 @@ func InsertSchool(conn *pgxpool.Pool, school *School) error {
 }
 
 //GetSchoolByID returns a School object from the database if they exist.  Otherwise, it returns nil.
-func GetSchoolByID(conn *pgxpool.Pool, ID int64) (*School, error) {
+func GetSchoolByID(conn *pgxpool.Pool, ID int) (*School, error) {
 	var school School
 	var err error
 	statement := "SELECT * FROM schools WHERE id=$1"
@@ -40,6 +40,15 @@ func GetSchoolByName(conn *pgxpool.Pool, name string) (*School, error) {
 	statement := "SELECT * FROM schools WHERE name=$1"
 	err = conn.QueryRow(context.Background(), statement, name).Scan(&school.ID, &school.Name, &school.TopRated, &school.Public, &school.City, &school.State, &school.Country, &school.User_ID)
 	return &school, err
+}
+
+//GetSchoolIDByName returns the ID of a school from the database if they exist.  Otherwise, it returns nil.
+func GetSchoolIDByName(conn *pgxpool.Pool, name string) (int, error) {
+	var ID int
+	var err error
+	statement := "SELECT id FROM schools WHERE name=$1"
+	err = conn.QueryRow(context.Background(), statement, name).Scan(&ID)
+	return ID, err
 }
 
 //SchoolExists checks if a school exists in the database.
