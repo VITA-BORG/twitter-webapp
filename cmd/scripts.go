@@ -567,3 +567,24 @@ func (app *application) addBioTag(bioTag *models.BioTag) error {
 	}
 	return nil
 }
+
+//simplifyFollowing simplifies a follow to a simplifiedUser
+func (app *application) simplifyFollowing(follow *models.Follow) *simplifiedUser {
+	var user simplifiedUser
+	user.ID = follow.FollowerID
+	user.Username = follow.FollowerUsername
+	return &user
+}
+
+//simplifyFollower simplifies a follower to a simplifiedUser
+func (app *application) simplifyFollower(follower *models.Follow) *simplifiedUser {
+	var user simplifiedUser
+	user.ID = follower.FolloweeID
+	user.Username = follower.FolloweeUsername
+	return &user
+}
+
+//scrapeConnections takes a list of follows and finds out if any of them have connections to users in the database.
+func (app *application) scrapeConnections(follow *models.Follow) error {
+	return nil
+}
