@@ -155,7 +155,7 @@ func (app *application) ProfileWorker() {
 func (app *application) TweetsWorker() {
 	//reads from the tweets channel until it is closed
 	for user := range app.tweetsChan {
-		app.tweetsStatus = fmt.Sprintf("scraping %d", user.ID)
+		app.tweetsStatus = fmt.Sprintf("scraping %s", user.Username)
 		//scrapes tweets and updates them in database (includes retweets and replies)
 		app.infoLog.Println("Scraping tweets for user:", user.ID)
 		tweets := app.scrapeTweets(user.Username, user.StartDate)
@@ -199,7 +199,7 @@ func (app *application) TweetsWorker() {
 func (app *application) FollowWorker() {
 	//reads from the follow channel until it is closed
 	for user := range app.followChan {
-		app.followingStatus = fmt.Sprintf("scraping %d", user.ID)
+		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
 		follows, err := app.getFollows(*user)
 		if err != nil {
 			app.errorLog.Println("Error getting followings:", err)
@@ -221,7 +221,7 @@ func (app *application) FollowWorker() {
 func (app *application) FollowerWorker() {
 	//reads from the follower channel until it is closed
 	for user := range app.followerChan {
-		app.followStatus = fmt.Sprintf("scraping %d", user.ID)
+		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
 		followers, err := app.getFollowers(*user)
 		if err != nil {
 			app.errorLog.Println("Error getting followers:", err)
