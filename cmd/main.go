@@ -18,6 +18,10 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+type followRequest struct {
+	User     simplifiedUser
+	upstream chan []*models.Follow
+}
 type connectionsRequest struct {
 	follows  []*models.Follow `json:"follows"`
 	follower bool             `json:'follower"`
@@ -65,6 +69,8 @@ type application struct {
 	followerChan    chan *simplifiedUser
 	tweetsChan      chan *simplifiedUser
 	connectionsChan chan connectionsRequest
+	followQueue     chan *followRequest
+	followerQueue   chan *followRequest
 	//statuses of channels
 	profileStatus     string
 	followStatus      string
@@ -128,12 +134,16 @@ func main() {
 	followerChan := make(chan *simplifiedUser)
 	tweetsChan := make(chan *simplifiedUser)
 	connectionsChan := make(chan connectionsRequest)
+	followQueue := make(chan *followRequest)
+	followerQueue := make(chan *followRequest)
 
 	defer close(profileChan)
 	defer close(followChan)
 	defer close(followerChan)
 	defer close(tweetsChan)
 	defer close(connectionsChan)
+	defer close(followQueue)
+	defer close(followerQueue)
 
 	profileStatus := "idle"
 	followStatus := "idle"
@@ -158,6 +168,8 @@ func main() {
 		followerChan:      followerChan,
 		tweetsChan:        tweetsChan,
 		connectionsChan:   connectionsChan,
+		followQueue:       followQueue,
+		followerQueue:     followerQueue,
 		profileStatus:     profileStatus,
 		followStatus:      followStatus,
 		followingStatus:   followingStatus,
