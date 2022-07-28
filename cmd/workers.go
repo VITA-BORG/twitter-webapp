@@ -264,3 +264,13 @@ func (app *application) ConnectionsWorker() {
 	}
 
 }
+
+//FollowerQueue is a queue that reads from the follower channel for request structs which contain the channel where a slice of pointers to models.follow structs are returned.
+func (app *application) FollowerQueue() {
+	//reads from follower request channel and scrapes the requests
+}
+
+//FollowingQueue is a queue that reads from the following channel for request structs which contain the channel where a slice of pointers to models.folow structs are returned.
+func (app *application) FollwingQueue() {
+	//reads from following request channel and scrapes the requests
+}
