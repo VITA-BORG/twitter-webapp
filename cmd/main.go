@@ -18,6 +18,10 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+type connectionsRequest struct {
+	follows  []*models.Follow `json:"follows"`
+	follower bool             `json:'follower"`
+}
 type simplifiedSchool struct {
 	Name          string `json:"name"`
 	TopRated      bool   `json:"top_rated"`
@@ -56,15 +60,17 @@ type application struct {
 	secretKey      string
 	followerClient http.Client
 	//expects simplifiedUser struct
-	profileChan  chan *simplifiedUser
-	followChan   chan *simplifiedUser
-	followerChan chan *simplifiedUser
-	tweetsChan   chan *simplifiedUser
+	profileChan     chan *simplifiedUser
+	followChan      chan *simplifiedUser
+	followerChan    chan *simplifiedUser
+	tweetsChan      chan *simplifiedUser
+	connectionsChan chan connectionsRequest
 	//statuses of channels
-	profileStatus   string
-	followStatus    string
-	followingStatus string
-	tweetsStatus    string
+	profileStatus     string
+	followStatus      string
+	followingStatus   string
+	connectionsStatus string
+	tweetsStatus      string
 	//the limit of the number of followers to scrape.  If the number of followers is greater than this, the followers will not be scraped.
 	followLimit int
 }
@@ -121,38 +127,43 @@ func main() {
 	followChan := make(chan *simplifiedUser)
 	followerChan := make(chan *simplifiedUser)
 	tweetsChan := make(chan *simplifiedUser)
+	connectionsChan := make(chan connectionsRequest)
 
 	defer close(profileChan)
 	defer close(followChan)
 	defer close(followerChan)
 	defer close(tweetsChan)
+	defer close(connectionsChan)
 
 	profileStatus := "idle"
 	followStatus := "idle"
 	followingStatus := "idle"
 	tweetsStatus := "idle"
+	connectionsStatus := "idle"
 
 	app := &application{
-		errorLog:        errLog,
-		infoLog:         infoLog,
-		connection:      conn,
-		scraper:         *twitterscraper.New(),
-		debug:           false,
-		templateCache:   templateCache,
-		bearerToken:     bearerToken,
-		bearerToken2:    bearerToken2,
-		apiKey:          apiKey,
-		secretKey:       secretKey,
-		followerClient:  followerClient,
-		profileChan:     profileChan,
-		followChan:      followChan,
-		followerChan:    followerChan,
-		tweetsChan:      tweetsChan,
-		profileStatus:   profileStatus,
-		followStatus:    followStatus,
-		followingStatus: followingStatus,
-		tweetsStatus:    tweetsStatus,
-		followLimit:     5000,
+		errorLog:          errLog,
+		infoLog:           infoLog,
+		connection:        conn,
+		scraper:           *twitterscraper.New(),
+		debug:             false,
+		templateCache:     templateCache,
+		bearerToken:       bearerToken,
+		bearerToken2:      bearerToken2,
+		apiKey:            apiKey,
+		secretKey:         secretKey,
+		followerClient:    followerClient,
+		profileChan:       profileChan,
+		followChan:        followChan,
+		followerChan:      followerChan,
+		tweetsChan:        tweetsChan,
+		connectionsChan:   connectionsChan,
+		profileStatus:     profileStatus,
+		followStatus:      followStatus,
+		followingStatus:   followingStatus,
+		tweetsStatus:      tweetsStatus,
+		connectionsStatus: connectionsStatus,
+		followLimit:       5000,
 	}
 
 	//Initializes concurrent workers

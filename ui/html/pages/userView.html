@@ -11,12 +11,12 @@
         <label>School</label>
         <select name="school" id="school">
             {{range $School := .Schools}}
-            <option value="{{$School.Name}}" {{if (eq $School.Name .CurrentUserSchool.Name)}} selected="selected" {{end}}>{{$School.Name}}</option>
+            <option value="{{$School.Name}}">{{$School.Name}}</option>
             {{end}}
         </select>
         <br>
         <label>Start Date</label>
-        <input type="date" name="startDate" value="{{.CurrentUser.StartDate}}">
+        <input type="date" name="startDate" value="{{.CurrentUser.CollectedAt}}">
         <br>
     </div>
     <div>

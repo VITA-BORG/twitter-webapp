@@ -212,50 +212,13 @@ func (app *application) FollowWorker() {
 		}
 		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
 		//Connection scrape, sees if there are any connections between followings of the user and the rest in the database
-		//app.infoLog.Println("Scraping connections for user:", user.Username)
-		// for _, follow := range follows {
-		// 	simpliefiedFollow := app.simplifyFollowing(follow)
-		// 	followFollowings, err := app.getFollows(*simpliefiedFollow)
-		// 	if err != nil {
-		// 		app.errorLog.Println("Error getting followings:", err)
-		// 		continue
-		// 	}
-		// 	//checks if the followings of the follow are already in the database,.  If they are, a follow is added to the database.  If they aren't they are skipped.
-		// 	for _, followFollowing := range followFollowings {
-		// 		if models.UserIDExists(app.connection, followFollowing.FolloweeID) {
-		// 			//insert follow
-		// 			err = models.InsertFollow(app.connection, followFollowing)
-		// 			if err != nil {
-		// 				app.errorLog.Println("Error inserting follow:", err)
-		// 				continue
-		// 			}
-		// 		}
-		// 	}
+		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 
-		// 	//sleeps for a minute to avoid rate limiting just in case
-		// 	time.Sleep(60 * time.Second)
+		app.connectionsChan <- connectionsRequest{
+			follows:  follows,
+			follower: true,
+		}
 
-		// 	followFollowers, err := app.getFollowers(*simpliefiedFollow)
-		// 	if err != nil {
-		// 		app.errorLog.Println("Error getting followers:", err)
-		// 		continue
-		// 	}
-		// 	//checks if the followers of the follow are already in the database,.  If they are, a follow is added to the database.  If they aren't they are skipped.
-		// 	for _, followFollower := range followFollowers {
-		// 		if models.UserIDExists(app.connection, followFollower.FollowerID) {
-		// 			//insert follow
-		// 			err = models.InsertFollow(app.connection, followFollower)
-		// 			if err != nil {
-		// 				app.errorLog.Println("Error inserting follow:", err)
-		// 				continue
-		// 			}
-		// 		}
-		// 	}
-
-		// 	//sleeps for a minute to avoid rate limiting just in case
-		// 	time.Sleep(60 * time.Second)
-
-		//}
 		app.followStatus = "idle"
 	}
 
@@ -279,9 +242,25 @@ func (app *application) FollowerWorker() {
 			continue
 		}
 		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
+
+		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
+		app.connectionsChan <- connectionsRequest{
+			follows:  followers,
+			follower: false,
+		}
+
 		app.followStatus = "idle"
 	}
 	//add connection scrape
 	app.followStatus = "off"
 	app.infoLog.Println("Follower Worker finished")
+}
+
+//Connections Worker is the worker that scrapes connections.  It acts as a queue for both the Follower Worker and Following worker in order to avoid rate limiting
+func (app *application) ConnectionsWorker() {
+
+	for request := range app.connectionsChan {
+		app.scrapeConnections(request.follows, request.follower)
+	}
+
 }

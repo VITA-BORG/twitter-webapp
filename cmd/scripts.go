@@ -585,6 +585,62 @@ func (app *application) simplifyFollower(follower *models.Follow) *simplifiedUse
 }
 
 //scrapeConnections takes a list of follows and finds out if any of them have connections to users in the database.
-func (app *application) scrapeConnections(follow *models.Follow) error {
+//follower bool, if true it expects the slice of models.follow structs to be for a follower, if false, it expects them to be for a followee
+func (app *application) scrapeConnections(follows []*models.Follow, follower bool) error {
+
+	for _, user := range follows {
+
+		//creates a simplified user struct of the current follow
+		var currentUser simplifiedUser
+
+		if follower {
+			currentUser = simplifiedUser{
+				ID:       user.FollowerID,
+				Username: user.FollowerUsername,
+			}
+		} else {
+			currentUser = simplifiedUser{
+				ID:       user.FolloweeID,
+				Username: user.FolloweeUsername,
+			}
+		}
+
+		//check if user's followers have connections to the database
+		followers, err := app.getFollowers(currentUser)
+		if err != nil {
+			app.errorLog.Println("Error scraping connections: getFollowers()")
+			return err
+		}
+
+		//checks every follower to see if they are in the database
+		//if they are, the connection is added
+		for _, follower := range followers {
+			if models.UserIDExists(app.connection, follower.FollowerID) {
+				models.InsertFollow(app.connection, follower)
+			}
+		}
+
+		//sleep to avoid rate limiting
+		time.Sleep(time.Minute)
+
+		//check if user's followings have connections to the database
+		followings, err := app.getFollows(currentUser)
+		if err != nil {
+			app.errorLog.Println("Error scraping connections: getFollows()")
+			return err
+		}
+
+		//checks every following to see if they are in the database
+		//if they are, the connection is added
+		for _, following := range followings {
+			if models.UserIDExists(app.connection, following.FolloweeID) {
+				models.InsertFollow(app.connection, following)
+			}
+		}
+
+		time.Sleep(time.Minute)
+
+	}
+
 	return nil
 }
