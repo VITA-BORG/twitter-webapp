@@ -200,6 +200,8 @@ func (app *application) FollowWorker() {
 	//reads from the follow channel until it is closed
 	for user := range app.followChan {
 		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
+
+		//edit to use the new queue
 		follows, err := app.getFollows(*user)
 		if err != nil {
 			app.errorLog.Println("Error getting followings:", err)
@@ -231,6 +233,8 @@ func (app *application) FollowerWorker() {
 	//reads from the follower channel until it is closed
 	for user := range app.followerChan {
 		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
+
+		//Edit to use the new queue
 		followers, err := app.getFollowers(*user)
 		if err != nil {
 			app.errorLog.Println("Error getting followers:", err)
