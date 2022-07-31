@@ -26,6 +26,11 @@ DB_PORT=1234
 WEB_ADDR=:1234
 ```
 
+### Project Structure
+
+This project requires the following strucutre:
+
+
 ## Routes
 There are a few routes currently implemented in the web app.
 
@@ -57,3 +62,8 @@ You will see information about the status of the project, notifying you of any e
 5. Random testing option
 6. Quit
 
+If it is your first time running this application, you must first select option 1.  This will initialize the database to the proper structure.  After you do this, you will be able to select option 2 to start the web server.
+
+Option 3 will allow you to add a user to the scrape, however currently this does not support adding schools or participants.
+
+After yhou start the Web Server, you will need to add a school to the database in order to add participants connected to these schools.  To do this, navigate to the address that you provided in the .env file, and navigate to the schools page.  Here you will be able to add a school into the system.  After you do this, you navigate to the "Users" page and you will be able to start adding participants into the scrape.
