@@ -38,3 +38,22 @@ There are a few routes currently implemented in the web app.
 | /users/add            | The form to add participant users into the system                                                                                   |
 
 ## Running
+
+Before you run this project, there are a few things you have to set up.
+
+1. The .env file as outlined above
+2. A postgresql database with its information placed in the .env file
+   
+If these are set up, you can run the project with:
+```
+go run ./cmd
+```
+You will see information about the status of the project, notifying you of any errors, such as an incorrectly formatted .env file.  If everything is in order, you will be greeted by a command line interface with a few options:
+
+1. Initialize/Reset Tables
+2. Start Web Server
+3. Scrape User and add to Database
+4. List all users in Database
+5. Random testing option
+6. Quit
+
