@@ -16,6 +16,7 @@ This application also requires
   - BEARER_TOKEN
   - SECRET_KEY
   - API_KEY
+
 The .env file provides a list of environment variables that you can use to change how the program connects to the database, what address the web server starts on, and important secret tokens that allows the scraper to obtain data from the twitter api.  To set up an environment file, create a file named .env in the root directory of the project.  The following code block is an example of the simple format that should be followed to create this file:
 ```
 DB_USER=username_here
@@ -30,6 +31,30 @@ WEB_ADDR=:1234
 
 This project requires the following strucutre:
 
+```
+- cmd
+  - webserver and scraper
+- internal/models
+  - database models
+- ui
+  - html
+    - pages
+      - dashboard.html
+      - schoolAdd.html
+      - userAdd.html
+      - users.html
+      - userView.html
+    - partials
+      - nav.html
+      - status.html
+    base.html
+  - static
+    - css
+      -main.css
+.env
+(executable)
+```
+./ui/html/pages contains all the templates for seperate pages.  ./ui/html/partials contains all partial html components such as the nav bar or the system status indicator.
 
 ## Routes
 There are a few routes currently implemented in the web app.
