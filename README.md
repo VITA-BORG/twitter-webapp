@@ -18,7 +18,7 @@ This application also requires
   - DB_PORT
   - WEB_ADDR
   - BEARER_TOKEN
-  - BEARER_TOKEN
+  - BEARER_TOKEN2
   - SECRET_KEY
   - API_KEY
 
