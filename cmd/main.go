@@ -23,8 +23,11 @@ type followRequest struct {
 	upstream chan []*models.Follow
 }
 type connectionsRequest struct {
-	follows  []*models.Follow `json:"follows"`
-	follower bool             `json:'follower"`
+	follows []*models.Follow `json:"follows"`
+	//expects: "followings" or "followers"
+	//"followings" means the slice of follows is the slice of followings
+	//"followers" means the slice of follows is the slice of followers
+	users string `json:'follower"`
 }
 type simplifiedSchool struct {
 	Name          string `json:"name"`
@@ -175,7 +178,7 @@ func main() {
 		followingStatus:   followingStatus,
 		tweetsStatus:      tweetsStatus,
 		connectionsStatus: connectionsStatus,
-		followLimit:       5000,
+		followLimit:       1000,
 	}
 
 	//Initializes concurrent workers

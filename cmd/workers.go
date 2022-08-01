@@ -235,8 +235,8 @@ func (app *application) FollowWorker() {
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 
 		app.connectionsChan <- connectionsRequest{
-			follows:  follows,
-			follower: true,
+			follows: follows,
+			users:   "followings",
 		}
 
 		app.followStatus = "idle"
@@ -282,8 +282,8 @@ func (app *application) FollowerWorker() {
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
-			follows:  followers,
-			follower: false,
+			follows: followers,
+			users:   "followers",
 		}
 
 		app.followStatus = "idle"
@@ -297,7 +297,84 @@ func (app *application) FollowerWorker() {
 func (app *application) ConnectionsWorker() {
 
 	for request := range app.connectionsChan {
-		app.scrapeConnections(request.follows, request.follower)
+
+		var currentUser *simplifiedUser
+
+		for _, user := range request.follows {
+			//if the slice of follows is of followings of a user, that means the user is the followee, then that means the followerID and followerUsername is of the the other users.
+			if request.users == "followings" {
+				currentUser = &simplifiedUser{
+					ID:       user.FolloweeID,
+					Username: user.FolloweeUsername,
+				}
+			} else if request.users == "followers" {
+				currentUser = &simplifiedUser{
+					ID:       user.FollowerID,
+					Username: user.FollowerUsername,
+				}
+			} else {
+				app.errorLog.Println("Invalid user type")
+				continue
+			}
+
+			//scrapes the user
+			currUser, err := app.scrapeUser(currentUser.Username)
+			if err != nil {
+				app.errorLog.Println("Error scraping user:", err)
+				continue
+			}
+
+			var followers []*models.Follow
+			var followings []*models.Follow
+
+			//sends a request to the followers and followings of the currentUser if they fall below the limit
+			app.infoLog.Println("Sending request for followers for user:", currentUser.Username)
+			if currUser.Followers < app.followLimit {
+				followerChan := make(chan []*models.Follow)
+				followerRequest := &followRequest{
+					User:     currentUser,
+					upstream: followerChan,
+				}
+				app.followerQueue <- followerRequest
+				followers = <-followerChan
+				close(followerChan)
+				app.infoLog.Printf("%d followers recieved for user: %s", len(followers), currentUser.Username)
+			}
+
+			app.infoLog.Println("Sending request for followings for user:", currentUser.Username)
+			if currUser.Following < app.followLimit {
+				followingChan := make(chan []*models.Follow)
+				followingRequest := &followRequest{
+					User:     currentUser,
+					upstream: followingChan,
+				}
+				app.followQueue <- followingRequest
+				followings = <-followingChan
+				close(followingChan)
+				app.infoLog.Printf("%d followings recieved for user: %s", len(followings), currentUser.Username)
+			}
+
+			app.infoLog.Printf("Updating Connections for user: %s", currentUser.Username)
+			//iterates through all followers and checks if they are already in the database
+			//if they are already in the database, the follow is added since both users are already in the database
+			for _, follower := range followers {
+				if models.UserIDExists(app.connection, follower.FollowerID) {
+					app.infoLog.Printf("Connection found. Follower: %s, Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
+					models.InsertFollow(app.connection, follower)
+				}
+			}
+
+			//iterates through all followings and checks if they are already in the database
+			//if they are already in the database, the follow is added since both users are already in the database
+			for _, following := range followings {
+				if models.UserIDExists(app.connection, following.FolloweeID) {
+					app.infoLog.Printf("Connection found. Follower: %s, Followee: %s", following.FollowerUsername, following.FolloweeUsername)
+					models.InsertFollow(app.connection, following)
+				}
+			}
+
+		}
+
 	}
 
 }
