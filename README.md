@@ -1,7 +1,7 @@
 # F3Ytwitter
 This is a basic web app which interacts with the F3Y database, scraping users and their twitter networks
 
-## Future Goals
+## Goals
 - User Authentication
 - Better styling
 - In depth manual error handling through web interface
