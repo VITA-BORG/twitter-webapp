@@ -1,5 +1,10 @@
 # F3Ytwitter
-This is a basic web app which interacts with the F3Y database
+This is a basic web app which interacts with the F3Y database, scraping users and their twitter networks
+
+## Future Goals
+- User Authentication
+- Better styling
+- In depth manual error handling through web interface
 
 ## Requirements
 This application has a few requirements.  This project uses Go 1.18.
@@ -54,7 +59,8 @@ This project requires the following strucutre:
 .env
 (executable)
 ```
-./ui/html/pages contains all the templates for seperate pages.  ./ui/html/partials contains all partial html components such as the nav bar or the system status indicator.
+./ui/html/pages contains all the templates for seperate pages.  
+./ui/html/partials contains all partial html components such as the nav bar or the system status indicator.  In the future, this will also contain headers and footers if required.
 
 ## Routes
 There are a few routes currently implemented in the web app.
