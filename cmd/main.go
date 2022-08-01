@@ -19,7 +19,7 @@ import (
 )
 
 type followRequest struct {
-	User     simplifiedUser
+	User     *simplifiedUser
 	upstream chan []*models.Follow
 }
 type connectionsRequest struct {
@@ -184,6 +184,9 @@ func main() {
 	go app.FollowWorker()
 	go app.FollowerWorker()
 	go app.TweetsWorker()
+	go app.ConnectionsWorker()
+	go app.FollowerQueue()
+	go app.FollowingQueue()
 
 	srv := &http.Server{
 		Addr:     *addr,

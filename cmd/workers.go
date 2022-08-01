@@ -134,6 +134,7 @@ func (app *application) ProfileWorker() {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
+			app.infoLog.Printf("Sending %s to followers channel", user.Handle)
 			app.followerChan <- curr
 		}
 
@@ -142,8 +143,10 @@ func (app *application) ProfileWorker() {
 			app.infoLog.Println("User has too many following, not scraping following")
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
+			app.infoLog.Printf("Sending %s to following channel", user.Handle)
 			app.followChan <- curr
 		}
+
 		app.profileStatus = "idle"
 
 	}
@@ -201,19 +204,34 @@ func (app *application) FollowWorker() {
 	for user := range app.followChan {
 		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		//edit to use the new queue
-		follows, err := app.getFollows(*user)
-		if err != nil {
-			app.errorLog.Println("Error getting followings:", err)
+		app.infoLog.Println("Scraping followings for user:", user.ID)
+
+		upstreamChan := make(chan []*models.Follow)
+
+		request := &followRequest{
+			User:     user,
+			upstream: upstreamChan,
+		}
+		//sends request for follows to the follow queue channel
+		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.followQueue <- request
+		//waits for the response from the follow queue channel
+		app.infoLog.Printf("Waiting for follow response for user: %s", user.Username)
+		follows := <-upstreamChan
+		close(upstreamChan)
+		if follows == nil {
+			app.errorLog.Println("No follows found for user:", user.Username)
 			continue
 		}
-		err = app.updateFollows(follows)
+
+		app.infoLog.Printf("%d follows recieved for user: %s", len(follows), user.Username)
+		app.infoLog.Printf("Updating Follows for user: %s", user.Username)
+
+		err := app.updateFollows(follows)
 		if err != nil {
 			app.errorLog.Println("Error updating followings:", err)
 			continue
 		}
-		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
-		//Connection scrape, sees if there are any connections between followings of the user and the rest in the database
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 
 		app.connectionsChan <- connectionsRequest{
@@ -234,18 +252,33 @@ func (app *application) FollowerWorker() {
 	for user := range app.followerChan {
 		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		//Edit to use the new queue
-		followers, err := app.getFollowers(*user)
-		if err != nil {
-			app.errorLog.Println("Error getting followers:", err)
+		app.infoLog.Println("Scraping followers for user:", user.ID)
+
+		upstreamChan := make(chan []*models.Follow)
+
+		request := &followRequest{
+			User:     user,
+			upstream: upstreamChan,
+		}
+
+		//sends request for followers to the follower queue
+		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.followerQueue <- request
+		//waits for the response from the follower queue
+		app.infoLog.Printf("Waiting for follower response for user: %s", user.Username)
+		followers := <-upstreamChan
+		close(upstreamChan)
+		if followers == nil {
+			app.errorLog.Println("No followers found for user:", user.Username)
 			continue
 		}
-		err = app.updateFollows(followers)
+		app.infoLog.Printf("%d followers recieved for user: %s", len(followers), user.Username)
+		app.infoLog.Printf("Updating Followers for user: %s", user.Username)
+		err := app.updateFollows(followers)
 		if err != nil {
 			app.errorLog.Println("Error updating followers:", err)
 			continue
 		}
-		time.Sleep(60 * time.Second) //sleep 60 seconds to avoid rate limiting just in case
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
@@ -274,6 +307,8 @@ func (app *application) FollowerQueue() {
 	//reads from follower request channel and scrapes the requests
 	for currRequest := range app.followerQueue {
 
+		app.infoLog.Println("Recieved request for followers for user:", currRequest.User.Username)
+
 		followers, err := app.getFollowers(currRequest.User)
 		if err != nil {
 			app.errorLog.Println("Error getting followers for: ", currRequest.User.Username)
@@ -281,15 +316,19 @@ func (app *application) FollowerQueue() {
 		}
 
 		currRequest.upstream <- followers
+
+		//sleeps for a minute to avoid rate limiting
 		time.Sleep(time.Minute)
 
 	}
 }
 
 //FollowingQueue is a queue that reads from the following channel for request structs which contain the channel where a slice of pointers to models.folow structs are returned.
-func (app *application) FollwingQueue() {
+func (app *application) FollowingQueue() {
 	//reads from following request channel and scrapes the requests
 	for currRequest := range app.followQueue {
+
+		app.infoLog.Println("Recieved request for followings for user:", currRequest.User.Username)
 
 		followings, err := app.getFollows(currRequest.User)
 		if err != nil {
@@ -298,6 +337,8 @@ func (app *application) FollwingQueue() {
 		}
 
 		currRequest.upstream <- followings
+
+		//sleeps for a minute to avoid rate limiting
 		time.Sleep(time.Minute)
 
 	}

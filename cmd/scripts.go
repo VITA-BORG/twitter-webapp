@@ -606,7 +606,7 @@ func (app *application) scrapeConnections(follows []*models.Follow, follower boo
 		}
 
 		//check if user's followers have connections to the database
-		followers, err := app.getFollowers(currentUser)
+		followers, err := app.getFollowers(&currentUser)
 		if err != nil {
 			app.errorLog.Println("Error scraping connections: getFollowers()")
 			return err
@@ -624,7 +624,7 @@ func (app *application) scrapeConnections(follows []*models.Follow, follower boo
 		time.Sleep(time.Minute)
 
 		//check if user's followings have connections to the database
-		followings, err := app.getFollows(currentUser)
+		followings, err := app.getFollows(&currentUser)
 		if err != nil {
 			app.errorLog.Println("Error scraping connections: getFollows()")
 			return err

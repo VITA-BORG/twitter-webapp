@@ -64,7 +64,7 @@ func (app *application) getResponse(url string, bearer string) (*http.Response, 
 }
 
 //getFollowers scrapes a user's profile and returns a slice of models.Follow structs of users that follow a user
-func (app *application) getFollowers(user simplifiedUser) ([]*models.Follow, error) {
+func (app *application) getFollowers(user *simplifiedUser) ([]*models.Follow, error) {
 	var followers []*models.Follow
 	var pageToken string
 	currTime := time.Now()
@@ -147,7 +147,7 @@ func (app *application) getFollowers(user simplifiedUser) ([]*models.Follow, err
 }
 
 //getFollows scrapes a user's profile and returns a slice of models.Follow structs of users that a user follows
-func (app *application) getFollows(user simplifiedUser) ([]*models.Follow, error) {
+func (app *application) getFollows(user *simplifiedUser) ([]*models.Follow, error) {
 	var follows []*models.Follow
 	var pageToken string
 	currTime := time.Now()
