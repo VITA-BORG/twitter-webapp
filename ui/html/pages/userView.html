@@ -1,9 +1,10 @@
-{{define "title"}}{{.CurrentUser.ProfileName}}'s Profile{{end}}
+{{define "title"}}{{.UserViewPage.CurrentUser.ProfileName}}'s Profile{{end}}
 
 {{define "main"}}
+{{with .UserViewPage}}
 
 <h1>{{.CurrentUser.ProfileName}}'s Profile</h1>
-<form action="/users/view" method="POST">
+<form action="/users/add" method="POST">
     <div>
         <label>Handle</label>
         <input type="text" name="handle" value="{{.CurrentUser.Handle}}">
@@ -30,5 +31,5 @@
 
 
 
-
+{{end}}
 {{end}}

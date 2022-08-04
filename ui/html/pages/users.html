@@ -1,6 +1,7 @@
 {{define "title"}}Users{{end}}
 
 {{define "main"}}
+{{with .UsersPage}}
     <h1>Users in the system</h1>
     <h2>Participants</h2>
     <p>Number of Participants: {{.NumParticipants}}</p>
@@ -13,7 +14,7 @@
                 <th>Gender</th>
                 <th>UID</th>
             </tr>
-        {{range .Users}}
+        {{range .Participants}}
             <tr>
                 <td>
                     <a class="dashboard-list" href='/users/view/{{.Handle}}'>{{.ProfileName}}</a>
@@ -33,4 +34,5 @@
         {{end}}
         </table>
     </div>
+{{end}}
 {{end}}

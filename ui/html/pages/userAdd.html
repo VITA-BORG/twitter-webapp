@@ -1,6 +1,7 @@
 {{define "title"}}Insert or Update a User{{end}}
 
 {{define "main"}}
+{{with .UserAddPage}}
 <h2> Insert or Update a User </h2>
 <form action='/users/add' method='POST'>
     <div>
@@ -30,4 +31,5 @@
         <input type="submit" value="Submit">
     </div>
 </form>
+{{end}}
 {{end}}

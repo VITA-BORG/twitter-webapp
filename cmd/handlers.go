@@ -62,12 +62,14 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &templateData{
-		CurrentUser:       *user,
-		CurrentUserSchool: *school,
-		Schools:           schools,
+		UserViewPage: userViewPage{
+			CurrentUser:       *user,
+			CurrentUserSchool: *school,
+			Schools:           schools,
+		},
 	}
 
-	app.populateWorkerStatus(data)
+	app.populateStatusData(data)
 
 	app.renderTemplate(w, http.StatusOK, "userView.html", data)
 }
@@ -78,19 +80,15 @@ func (app *application) users(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
-	numUsers, err := models.GetUserCount(app.connection)
-	if err != nil {
-		app.serverError(w, err)
-		return
-	}
-	data := &templateData{
-		Users:           Users,
-		ProfileStatus:   app.profileStatus,
-		FollowerStatus:  app.followStatus,
-		FollowingStatus: app.followingStatus,
-		NumberOfUsers:   numUsers,
+
+	usersData := usersPage{
+		Participants:    Users,
 		NumParticipants: len(Users),
 	}
+	data := &templateData{
+		UsersPage: usersData,
+	}
+	app.populateStatusData(data)
 
 	app.renderTemplate(w, http.StatusOK, "users.html", data)
 
@@ -104,13 +102,8 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Users := app.getAllUsernames()
-	data := &templateData{
-		ProfileStatus:   app.profileStatus,
-		FollowerStatus:  app.followStatus,
-		FollowingStatus: app.followingStatus,
-		NumberOfUsers:   len(Users),
-	}
+	data := &templateData{}
+	app.populateStatusData(data)
 
 	app.renderTemplate(w, http.StatusOK, "dashboard.html", data)
 
@@ -123,11 +116,15 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
-	data := &templateData{
+
+	userAddData := userAddPage{
 		Schools: schools,
 	}
+	data := &templateData{
+		UserAddPage: userAddData,
+	}
 
-	app.populateWorkerStatus(data)
+	app.populateStatusData(data)
 
 	app.renderTemplate(w, http.StatusOK, "userAdd.html", data)
 	fmt.Fprintf(w, "User Add Form")
@@ -200,9 +197,11 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data := &templateData{
-			Schools: schools,
+			UserAddPage: userAddPage{
+				Schools: schools,
+			},
 		}
-		app.populateWorkerStatus(data)
+		app.populateStatusData(data)
 		data.Form = form
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
 		return
@@ -234,13 +233,15 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 	data := &templateData{}
-	app.populateWorkerStatus(data)
+	app.populateStatusData(data)
 	schools, err := models.GetAllSchools(app.connection)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	data.Schools = schools
+	data.SchoolAddPage = schoolAddPage{
+		Schools: schools,
+	}
 	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
 	fmt.Fprintf(w, "School Add Form")
 }
@@ -307,8 +308,10 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 			app.serverError(w, err)
 			return
 		}
-		data.Schools = schools
-		app.populateWorkerStatus(data)
+		data.SchoolAddPage = schoolAddPage{
+			Schools: schools,
+		}
+		app.populateStatusData(data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "schoolAdd.html", data)
 		fmt.Fprint(w, fieldErrors)
 		return

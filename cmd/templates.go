@@ -11,18 +11,40 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
-//Containst the data that will be passed to the templates.
-type templateData struct {
+//Contains the data that will be passed to the templates.
+type statusData struct {
+	FollowerStatus  string
+	FollowingStatus string
+	ProfileStatus   string
+	NumberOfUsers   int
+}
+
+type usersPage struct {
+	Participants    []models.User
+	NumParticipants int
+}
+
+type userAddPage struct {
+	Schools []models.School
+}
+
+type schoolAddPage struct {
+	Schools []models.School
+}
+
+type userViewPage struct {
 	CurrentUser       models.User
 	CurrentUserSchool models.School
-	FollowerStatus    string
-	FollowingStatus   string
-	ProfileStatus     string
-	Users             []models.User
 	Schools           []models.School
-	NumberOfUsers     int
-	NumParticipants   int
-	Form              any
+}
+
+type templateData struct {
+	StatusData    statusData
+	UsersPage     usersPage
+	UserAddPage   userAddPage
+	SchoolAddPage schoolAddPage
+	UserViewPage  userViewPage
+	Form          any
 }
 
 var functions = template.FuncMap{
@@ -96,9 +118,12 @@ func (app *application) renderTemplate(w http.ResponseWriter, status int, page s
 }
 
 //populateWorkerStatus is a helper function that populates the FollowerStatus and FollowingStatus fields of the templateData struct.
-func (app *application) populateWorkerStatus(data *templateData) {
-	data.FollowerStatus = app.followStatus
-	data.FollowingStatus = app.followingStatus
-	data.ProfileStatus = app.profileStatus
-	data.NumberOfUsers = len(app.getAllUsernames())
+func (app *application) populateStatusData(data *templateData) {
+	data.StatusData = statusData{
+		FollowerStatus:  app.followStatus,
+		FollowingStatus: app.followingStatus,
+		ProfileStatus:   app.profileStatus,
+	}
+
+	data.StatusData.NumberOfUsers, _ = models.GetUserCount(app.connection)
 }
