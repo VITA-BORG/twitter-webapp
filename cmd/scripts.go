@@ -212,6 +212,10 @@ func getMentions(text string) []string {
 			curr = strings.Replace(curr, ":", "", 1)
 			curr = strings.Replace(curr, ";", "", 1)
 			curr = strings.Replace(curr, "…", "", 1)
+			i := strings.Index(curr, " ")
+			if i != -1 {
+				curr = curr[:i]
+			}
 			mentions = append(mentions, curr)
 		}
 	}
