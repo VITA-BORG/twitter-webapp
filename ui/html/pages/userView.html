@@ -11,6 +11,7 @@
         <br>
         <label>School</label>
         <select name="school" id="school">
+            <option value="{{.CurrentUserSchool.Name}}" selected="selected">{{.CurrentUserSchool.Name}}</option>
             {{range $School := .Schools}}
             <option value="{{$School.Name}}">{{$School.Name}}</option>
             {{end}}

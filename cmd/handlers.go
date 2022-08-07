@@ -61,6 +61,14 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//removes user's school from the slice of schools available
+	for i, s := range schools {
+		if s.ID == school.ID {
+			schools[i] = schools[len(schools)-1]
+			schools = schools[:len(schools)-1]
+		}
+	}
+
 	data := &templateData{
 		UserViewPage: userViewPage{
 			CurrentUser:       *user,
