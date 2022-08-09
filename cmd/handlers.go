@@ -9,36 +9,37 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
+	"github.com/rainbowriverrr/F3Ytwitter/internal/validation"
 )
 
 type userViewForm struct {
-	Handle      string `schema:"handle"`
-	School      string `schema:"school"`
-	StartDate   string `schema:"start-date"`
-	Follows     bool   `schema:"follows"`
-	Content     bool   `schema:"content"`
-	Cohort      int    `schema:"cohort"`
-	FieldErrors map[string]string
+	Handle    string `schema:"handle"`
+	School    string `schema:"school"`
+	StartDate string `schema:"start-date"`
+	Follows   bool   `schema:"follows"`
+	Content   bool   `schema:"content"`
+	Cohort    string `schema:"cohort"`
+	validation.Validator
 }
 type userAddForm struct {
-	Handle      string `schema:"handle"`
-	School      string `schema:"school"`
-	StartDate   string `schema:"start-date"`
-	Follows     bool   `schema:"follows"`
-	Content     bool   `schema:"content"`
-	Cohort      string `schema:"cohort"`
-	FieldErrors map[string]string
+	Handle    string `schema:"handle"`
+	School    string `schema:"school"`
+	StartDate string `schema:"start-date"`
+	Follows   bool   `schema:"follows"`
+	Content   bool   `schema:"content"`
+	Cohort    string `schema:"cohort"`
+	validation.Validator
 }
 
 type schoolAddForm struct {
-	Name        string `schema:"name"`
-	City        string `schema:"city"`
-	State       string `schema:"state"`
-	Country     string `schema:"country"`
-	Handle      string `schema:"handle"`
-	TopRated    bool   `schema:"top-rated"`
-	Public      bool   `schema:"public"`
-	FieldErrors map[string]string
+	Name     string `schema:"name"`
+	City     string `schema:"city"`
+	State    string `schema:"state"`
+	Country  string `schema:"country"`
+	Handle   string `schema:"handle"`
+	TopRated bool   `schema:"top-rated"`
+	Public   bool   `schema:"public"`
+	validation.Validator
 }
 
 func (app *application) userView(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +79,7 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	form := userViewForm{
 		Handle: user.Handle,
 		School: school.Name,
-		Cohort: student.Cohort,
+		Cohort: strconv.Itoa(student.Cohort),
 	}
 
 	//removes user's school from the slice of schools available
@@ -112,38 +113,22 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	form := userViewForm{}
-
-	form.Handle = strings.TrimSpace(r.PostForm.Get("handle"))
-	form.School = strings.TrimSpace(r.PostForm.Get("school"))
-	form.StartDate = r.PostForm.Get("start-date")
-	form.Follows = r.PostForm.Get("follows") == "true"
-	form.Content = r.PostForm.Get("content") == "true"
-
-	form.Cohort, err = strconv.Atoi(strings.TrimSpace(r.PostForm.Get("cohort")))
-
-	if err != nil {
-		form.Cohort = 0
-		form.FieldErrors["cohort"] = "Cohort must be a number"
+	form := userViewForm{
+		Handle:    strings.TrimSpace(r.PostForm.Get("handle")),
+		School:    strings.TrimSpace(r.PostForm.Get("school")),
+		StartDate: strings.TrimSpace(r.PostForm.Get("start-date")),
+		Cohort:    strings.TrimSpace(r.PostForm.Get("cohort")),
+		Follows:   r.PostForm.Get("follows") == "true",
+		Content:   r.PostForm.Get("content") == "true",
 	}
 
-	if form.Handle == "" {
-		form.FieldErrors["handle"] = "Required"
-	}
-	if form.School == "" {
-		form.FieldErrors["school"] = "Required"
-	}
-	if form.StartDate == "" {
-		form.FieldErrors["startDate"] = "Required"
-	}
+	form.CheckField(validation.ValidInt(form.Cohort), "cohort", "Cohort must be a number")
+	form.CheckField(validation.NotEmpty(form.Handle), "handle", "Handle is required")
+	form.CheckField(validation.NotEmpty(form.School), "school", "School is required")
+	form.CheckField(validation.NotEmpty(form.StartDate), "start-date", "Start Date is required")
+	form.CheckField(validation.PermittedDate(form.StartDate), "start-date", "Start Date must be a valid date")
 
-	startDate, err := time.Parse("2006-01-02", form.StartDate)
-
-	if err != nil {
-		form.FieldErrors["startDate"] = "Invalid date format"
-	}
-
-	if len(form.FieldErrors) > 0 {
+	if !form.Valid() {
 		app.infoLog.Println("Errors found in form")
 		schools, err := models.GetAllSchools(app.connection)
 		if err != nil {
@@ -163,7 +148,13 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		app.populateStatusData(data)
-		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "userView.html", data)
+		return
+	}
+
+	startDate, err := time.Parse("2006-01-02", form.StartDate)
+	if err != nil {
+		app.serverError(w, err)
 		return
 	}
 
@@ -186,12 +177,18 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cohortInt, err := strconv.Atoi(form.Cohort)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
 	toScrape := &simplifiedUser{
 		ID:                  uid,
 		Username:            form.Handle,
 		IsSchool:            false,
 		IsParticipant:       true,
-		ParticipantCohort:   form.Cohort,
+		ParticipantCohort:   cohortInt,
 		ParticipantSchoolID: schoolID,
 		StartDate:           startDate,
 		ScrapeConnections:   form.Follows,
@@ -270,55 +267,23 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form := userAddForm{
-		Handle:      r.PostForm.Get("handle"),
-		School:      r.PostForm.Get("school"),
-		StartDate:   r.PostForm.Get("start-date"),
-		Cohort:      r.PostForm.Get("cohort"),
-		Follows:     r.PostForm.Get("follows") == "true",
-		Content:     r.PostForm.Get("content") == "true",
-		FieldErrors: map[string]string{},
+		Handle:    strings.TrimSpace(r.PostForm.Get("handle")),
+		School:    strings.TrimSpace(r.PostForm.Get("school")),
+		StartDate: strings.TrimSpace(r.PostForm.Get("start-date")),
+		Cohort:    strings.TrimSpace(r.PostForm.Get("cohort")),
+		Follows:   strings.TrimSpace(r.PostForm.Get("follows")) == "true",
+		Content:   strings.TrimSpace(r.PostForm.Get("content")) == "true",
 	}
 
-	toScrape := &simplifiedUser{}
-
-	toScrape.Username = r.PostForm.Get("handle")
-	toScrape.IsParticipant = true
-	toScrape.IsSchool = false
-
-	if r.PostForm.Get("follows") == "true" {
-		toScrape.ScrapeConnections = true
-	}
-
-	if r.PostForm.Get("content") == "true" {
-		toScrape.ScrapeContent = true
-	}
-
-	schoolName := r.PostForm.Get("school")
-
-	dateForm := r.PostForm.Get("start-date")
-
-	cohort, err := strconv.Atoi(r.PostForm.Get("cohort"))
-	if err != nil {
-		form.FieldErrors["cohort"] = "Cohort must be a number"
-		return
-	}
-
-	if strings.TrimSpace(toScrape.Username) == "" {
-		form.FieldErrors["handle"] = "Handle is required"
-	}
-
-	if strings.TrimSpace(schoolName) == "" {
-		form.FieldErrors["school"] = "School is required"
-	}
-
-	if strings.TrimSpace(dateForm) == "" {
-		form.FieldErrors["startDate"] = "Start date is required"
-	} else if dateForm == "yyyy-mm-dd" {
-		form.FieldErrors["startDate"] = "Start date is required"
-	}
+	form.CheckField(validation.NotEmpty(form.Handle), "handle", "Handle is required")
+	form.CheckField(validation.NotEmpty(form.School), "school", "School is required")
+	form.CheckField(validation.NotEmpty(form.StartDate), "start-date", "Start Date is required")
+	form.CheckField(validation.PermittedDate(form.StartDate), "start-date", "Start Date must be a valid date")
+	form.CheckField(validation.NotEmpty(form.Cohort), "cohort", "Cohort is required")
+	form.CheckField(validation.ValidInt(form.Cohort), "cohort", "Cohort must be a valid integer")
 
 	//if there are any errors, render the form again with the field errors and repopulated fields
-	if len(form.FieldErrors) > 0 {
+	if !form.Valid() {
 		app.infoLog.Println("Errors found in form")
 		schools, err := models.GetAllSchools(app.connection)
 		if err != nil {
@@ -336,23 +301,35 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schoolID, err := models.GetSchoolIDByName(app.connection, schoolName)
+	cohort, err := strconv.Atoi(form.Cohort)
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
 
-	toScrape.ParticipantCohort = cohort
-	toScrape.ParticipantSchoolID = schoolID
+	schoolID, err := models.GetSchoolIDByName(app.connection, form.School)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
 
-	startDate, err := time.Parse("2006-01-02", strings.TrimSpace(dateForm))
+	startDate, err := time.Parse("2006-01-02", form.StartDate)
 
 	if err != nil {
 		startDate = time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
 		return
 	}
 
-	toScrape.StartDate = startDate
+	toScrape := &simplifiedUser{
+		Username:            form.Handle,
+		IsSchool:            false,
+		IsParticipant:       true,
+		ScrapeConnections:   form.Follows,
+		ScrapeContent:       form.Content,
+		ParticipantCohort:   cohort,
+		ParticipantSchoolID: schoolID,
+		StartDate:           startDate,
+	}
 
 	//sends the user to the scraper to scrape the user's profile
 	app.profileChan <- toScrape
@@ -381,53 +358,23 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 
 	form := schoolAddForm{
-		Name:        r.PostForm.Get("name"),
-		City:        r.PostForm.Get("city"),
-		State:       r.PostForm.Get("state"),
-		Country:     r.PostForm.Get("country"),
-		Handle:      r.PostForm.Get("handle"),
-		TopRated:    r.PostForm.Get("top-rated") == "true",
-		Public:      r.PostForm.Get("public") == "true",
-		FieldErrors: map[string]string{},
+		Name:     strings.ToLower(strings.TrimSpace(r.PostForm.Get("name"))),
+		City:     strings.ToLower(strings.TrimSpace(r.PostForm.Get("city"))),
+		State:    strings.ToLower(strings.TrimSpace(r.PostForm.Get("state"))),
+		Country:  strings.ToLower(strings.TrimSpace(r.PostForm.Get("country"))),
+		Handle:   strings.ToLower(strings.TrimSpace(r.PostForm.Get("handle"))),
+		TopRated: r.PostForm.Get("top-rated") == "true",
+		Public:   r.PostForm.Get("public") == "true",
 	}
 
-	toScrape := &simplifiedUser{}
-	toInsert := &simplifiedSchool{}
+	form.CheckField(validation.NotEmpty(form.Name), "name", "Name is required")
+	form.CheckField(validation.NotEmpty(form.City), "city", "City is required")
+	form.CheckField(validation.NotEmpty(form.State), "state", "State is required")
+	form.CheckField(validation.NotEmpty(form.Country), "country", "Country is required")
+	form.CheckField(validation.NotEmpty(form.Handle), "handle", "Handle is required")
 
-	toInsert.Name = strings.TrimSpace(r.PostForm.Get("name"))
-	toInsert.City = strings.ToLower(strings.TrimSpace(r.PostForm.Get("city")))
-	toInsert.State = strings.ToLower(strings.TrimSpace(r.PostForm.Get("state")))
-	toInsert.Country = strings.ToLower(strings.TrimSpace(r.PostForm.Get("country")))
-	toInsert.TwitterHandle = strings.ToLower(strings.TrimSpace(r.PostForm.Get("handle")))
-	if r.PostForm.Get("top-rated") == "true" {
-		toInsert.TopRated = true
-	}
-	if r.PostForm.Get("public") == "true" {
-		toInsert.Public = true
-	}
-
-	if toInsert.Name == "" {
-		form.FieldErrors["name"] = "Name is required"
-	}
-
-	if toInsert.City == "" {
-		form.FieldErrors["city"] = "City is required"
-	}
-
-	if toInsert.State == "" {
-		form.FieldErrors["state"] = "State is required"
-	}
-
-	if toInsert.Country == "" {
-		form.FieldErrors["country"] = "Country is required"
-	}
-
-	if toInsert.TwitterHandle == "" {
-		form.FieldErrors["handle"] = "Handle is required"
-	}
-
-	if len(form.FieldErrors) > 0 {
-		app.infoLog.Println("Errors found in form")
+	if !form.Valid() {
+		app.infoLog.Println("Errors found in School Add Form")
 		data := &templateData{
 			SchoolAddPage: schoolAddPage{
 				Form: form,
@@ -444,9 +391,21 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	toScrape.IsSchool = true
-	toScrape.SchoolInfo = toInsert
-	toScrape.Username = toInsert.TwitterHandle
+	toInsert := &simplifiedSchool{
+		Name:          form.Name,
+		City:          form.City,
+		State:         form.State,
+		Country:       form.Country,
+		TwitterHandle: form.Handle,
+		TopRated:      form.TopRated,
+		Public:        form.Public,
+	}
+
+	toScrape := &simplifiedUser{
+		IsSchool:   true,
+		Username:   form.Handle,
+		SchoolInfo: toInsert,
+	}
 
 	app.profileChan <- toScrape
 
