@@ -6,9 +6,15 @@
 <form action='/users/add' method='POST'>
     <div>
         <label>Handle</label>
+        {{with .Form.FieldErrors.handle}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="handle" value="">
         <br>
         <label>School</label>
+        {{with .Form.FieldErrors.school}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <select name="school" id="school">
             {{range .Schools}}
             <option value="{{.Name}}">{{.Name}}</option>
@@ -16,16 +22,22 @@
         </select>
         <br>
         <label>Start Date</label>
+        {{with .Form.FieldErrors.startDate}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="date" name="start-date" value="">
         <br>
         <label>Cohort</label>
+        {{with .Form.FieldErrors.cohort}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="cohort" value="">
         <br>
     </div>
     <div>
         <label>Options:</label>
-        <input type="checkbox" name="follows" value="true">Scrape Follows and Followers<br>
-        <input type="checkbox" name="content" value="true">Scrape Content<br>
+        <input type="checkbox" name="follows" value="true" {{if .Form.Follows}} checked {{end}}>Scrape Follows and Followers<br>
+        <input type="checkbox" name="content" value="true" {{if .Form.Content}} checked {{end}}>Scrape Content<br>
     </div>
     <div>
         <input type="submit" value="Submit">

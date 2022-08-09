@@ -96,6 +96,13 @@ func UpdateUser(conn *pgxpool.Pool, user *User) error {
 
 }
 
+//UpdateUserHandle updates the user's handle given a user struct
+func UpdateUserHandle(conn *pgxpool.Pool, user *User) error {
+	statement := "UPDATE users SET handle=$1 WHERE id=$2"
+	_, err := conn.Exec(context.Background(), statement, user.Handle, user.ID)
+	return err
+}
+
 //GetAllUsernames returns a list of all usernames in the database.
 func GetAllUsernames(conn *pgxpool.Pool) ([]string, error) {
 	var usernames []string

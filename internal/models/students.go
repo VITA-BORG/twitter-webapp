@@ -24,8 +24,17 @@ func GetStudentByID(conn *pgxpool.Pool, ID int64) (*Student, error) {
 	var student Student
 	var err error
 	statement := "SELECT * FROM students WHERE user_id=$1"
-	err = conn.QueryRow(context.Background(), statement, ID).Scan(&student.SchoolID, &student.Cohort, &student.UserID)
+	err = conn.QueryRow(context.Background(), statement, ID).Scan(&student.SchoolID, &student.UserID, &student.Cohort)
 	return &student, err
+}
+
+//GetStudentSchoolIDByID returns the school ID of a student from the database if they exist.  Otherwise, it returns nil.
+func GetStudentSchoolIDByID(conn *pgxpool.Pool, ID int64) (int, error) {
+	var schoolID int
+	var err error
+	statement := "SELECT school_id FROM students WHERE user_id=$1"
+	err = conn.QueryRow(context.Background(), statement, ID).Scan(&schoolID)
+	return schoolID, err
 }
 
 //StudentExists checks if a student exists in the database.

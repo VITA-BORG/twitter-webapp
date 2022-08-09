@@ -11,6 +11,15 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
+type userViewForm struct {
+	Handle      string `schema:"handle"`
+	School      string `schema:"school"`
+	StartDate   string `schema:"start-date"`
+	Follows     bool   `schema:"follows"`
+	Content     bool   `schema:"content"`
+	Cohort      int    `schema:"cohort"`
+	FieldErrors map[string]string
+}
 type userAddForm struct {
 	Handle      string `schema:"handle"`
 	School      string `schema:"school"`
@@ -35,9 +44,14 @@ type schoolAddForm struct {
 func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
-	username := params.ByName("username")
+	uid, err := strconv.ParseInt(params.ByName("id"), 10, 64)
 
-	user, err := app.getUserByHandle(username)
+	if err != nil {
+		app.notFound(w)
+		return
+	}
+
+	user, err := models.GetUserByID(app.connection, uid)
 	if err != nil {
 		app.notFound(w)
 		return
@@ -61,6 +75,12 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form := userViewForm{
+		Handle: user.Handle,
+		School: school.Name,
+		Cohort: student.Cohort,
+	}
+
 	//removes user's school from the slice of schools available
 	for i, s := range schools {
 		if s.ID == school.ID {
@@ -71,15 +91,117 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 
 	data := &templateData{
 		UserViewPage: userViewPage{
-			CurrentUser:       *user,
-			CurrentUserSchool: *school,
-			Schools:           schools,
+			CurrentUser: *user,
+			Schools:     schools,
+			Form:        form,
 		},
 	}
 
 	app.populateStatusData(data)
 
 	app.renderTemplate(w, http.StatusOK, "userView.html", data)
+}
+
+//userAddPost is a handler for the POST request to the /user/view/:id endpoint.  It validates the form data and, if valid, updates user to the database.
+func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+
+	uid, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	if err != nil {
+		app.notFound(w)
+		return
+	}
+
+	form := userViewForm{}
+
+	form.Handle = strings.TrimSpace(r.PostForm.Get("handle"))
+	form.School = strings.TrimSpace(r.PostForm.Get("school"))
+	form.StartDate = r.PostForm.Get("start-date")
+	form.Follows = r.PostForm.Get("follows") == "true"
+	form.Content = r.PostForm.Get("content") == "true"
+
+	form.Cohort, err = strconv.Atoi(strings.TrimSpace(r.PostForm.Get("cohort")))
+
+	if err != nil {
+		form.Cohort = 0
+		form.FieldErrors["cohort"] = "Cohort must be a number"
+	}
+
+	if form.Handle == "" {
+		form.FieldErrors["handle"] = "Required"
+	}
+	if form.School == "" {
+		form.FieldErrors["school"] = "Required"
+	}
+	if form.StartDate == "" {
+		form.FieldErrors["startDate"] = "Required"
+	}
+
+	startDate, err := time.Parse("2006-01-02", form.StartDate)
+
+	if err != nil {
+		form.FieldErrors["startDate"] = "Invalid date format"
+	}
+
+	if len(form.FieldErrors) > 0 {
+		app.infoLog.Println("Errors found in form")
+		schools, err := models.GetAllSchools(app.connection)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+		user, err := models.GetUserByID(app.connection, uid)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+		data := &templateData{
+			UserViewPage: userViewPage{
+				CurrentUser: *user,
+				Schools:     schools,
+				Form:        form,
+			},
+		}
+		app.populateStatusData(data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
+		return
+	}
+
+	user := &models.User{
+		ID:     uid,
+		Handle: form.Handle,
+	}
+
+	//updates the user handle if there has been a change
+	err = models.UpdateUserHandle(app.connection, user)
+	if err != nil {
+		app.errorLog.Println("Error updating user handle:", user)
+		app.serverError(w, err)
+		return
+	}
+
+	schoolID, err := models.GetSchoolIDByName(app.connection, form.School)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	toScrape := &simplifiedUser{
+		ID:                  uid,
+		Username:            form.Handle,
+		IsSchool:            false,
+		IsParticipant:       true,
+		ParticipantCohort:   form.Cohort,
+		ParticipantSchoolID: schoolID,
+		StartDate:           startDate,
+		ScrapeConnections:   form.Follows,
+		ScrapeContent:       form.Content,
+	}
+
+	app.profileChan <- toScrape
+
+	http.Redirect(w, r, "/users/add", http.StatusSeeOther)
+
 }
 
 func (app *application) users(w http.ResponseWriter, r *http.Request) {
@@ -127,6 +249,7 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 
 	userAddData := userAddPage{
 		Schools: schools,
+		Form:    userAddForm{},
 	}
 	data := &templateData{
 		UserAddPage: userAddData,
@@ -174,9 +297,6 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 
 	dateForm := r.PostForm.Get("start-date")
 
-	//validate form input
-	fieldErrors := make(map[string]string)
-
 	cohort, err := strconv.Atoi(r.PostForm.Get("cohort"))
 	if err != nil {
 		form.FieldErrors["cohort"] = "Cohort must be a number"
@@ -192,13 +312,14 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.TrimSpace(dateForm) == "" {
-		form.FieldErrors["start-date"] = "Start date is required"
+		form.FieldErrors["startDate"] = "Start date is required"
 	} else if dateForm == "yyyy-mm-dd" {
-		form.FieldErrors["start-date"] = "Start date is required"
+		form.FieldErrors["startDate"] = "Start date is required"
 	}
 
 	//if there are any errors, render the form again with the field errors and repopulated fields
-	if len(fieldErrors) > 0 {
+	if len(form.FieldErrors) > 0 {
+		app.infoLog.Println("Errors found in form")
 		schools, err := models.GetAllSchools(app.connection)
 		if err != nil {
 			app.serverError(w, err)
@@ -207,10 +328,10 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 		data := &templateData{
 			UserAddPage: userAddPage{
 				Schools: schools,
+				Form:    form,
 			},
 		}
 		app.populateStatusData(data)
-		data.Form = form
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
 		return
 	}
@@ -249,6 +370,7 @@ func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 	}
 	data.SchoolAddPage = schoolAddPage{
 		Schools: schools,
+		Form:    schoolAddForm{},
 	}
 	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
 	fmt.Fprintf(w, "School Add Form")
@@ -284,9 +406,6 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 		toInsert.Public = true
 	}
 
-	//validate form input
-	fieldErrors := make(map[string]string)
-
 	if toInsert.Name == "" {
 		form.FieldErrors["name"] = "Name is required"
 	}
@@ -307,21 +426,21 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 		form.FieldErrors["handle"] = "Handle is required"
 	}
 
-	if len(fieldErrors) > 0 {
+	if len(form.FieldErrors) > 0 {
+		app.infoLog.Println("Errors found in form")
 		data := &templateData{
-			Form: form,
+			SchoolAddPage: schoolAddPage{
+				Form: form,
+			},
 		}
 		schools, err := models.GetAllSchools(app.connection)
 		if err != nil {
 			app.serverError(w, err)
 			return
 		}
-		data.SchoolAddPage = schoolAddPage{
-			Schools: schools,
-		}
+		data.SchoolAddPage.Schools = schools
 		app.populateStatusData(data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "schoolAdd.html", data)
-		fmt.Fprint(w, fieldErrors)
 		return
 	}
 

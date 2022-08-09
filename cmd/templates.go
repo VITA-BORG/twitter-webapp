@@ -26,16 +26,18 @@ type usersPage struct {
 
 type userAddPage struct {
 	Schools []models.School
+	Form    any
 }
 
 type schoolAddPage struct {
 	Schools []models.School
+	Form    any
 }
 
 type userViewPage struct {
-	CurrentUser       models.User
-	CurrentUserSchool models.School
-	Schools           []models.School
+	CurrentUser models.User
+	Schools     []models.School
+	Form        any
 }
 
 type templateData struct {
@@ -44,7 +46,6 @@ type templateData struct {
 	UserAddPage   userAddPage
 	SchoolAddPage schoolAddPage
 	UserViewPage  userViewPage
-	Form          any
 }
 
 var functions = template.FuncMap{

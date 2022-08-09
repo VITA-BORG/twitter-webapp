@@ -4,27 +4,29 @@
 {{with .UserViewPage}}
 
 <h1>{{.CurrentUser.ProfileName}}'s Profile</h1>
-<form action="/users/add" method="POST">
+<form action="/users/view/{{.CurrentUser.ID}}" method="POST">
     <div>
         <label>Handle</label>
-        <input type="text" name="handle" value="{{.CurrentUser.Handle}}">
+        <input type="text" name="handle" value="{{.Form.Handle}}">
         <br>
         <label>School</label>
         <select name="school" id="school">
-            <option value="{{.CurrentUserSchool.Name}}" selected="selected">{{.CurrentUserSchool.Name}}</option>
+            <option value="{{.Form.School}}" selected="selected">{{.Form.School}}</option>
             {{range $School := .Schools}}
             <option value="{{$School.Name}}">{{$School.Name}}</option>
             {{end}}
         </select>
         <br>
         <label>Start Date</label>
-        <input type="date" name="startDate" value="{{.CurrentUser.CollectedAt}}">
+        <input type="date" name="startDate" value="{{.Form.StartDate}}">
         <br>
+        <label>Cohort</label>
+        <input type="text" name="cohort" value="{{.Form.Cohort}}">
     </div>
     <div>
         <label>Options:</label>
-        <input type="checkbox" name="follows" value="true">Scrape Follows and Followers<br>
-        <input type="checkbox" name="content" value="true">Scrape Content<br>
+        <input type="checkbox" name="follows" value="true" {{if .Form.Follows}}checked{{end}}>Scrape Follows and Followers<br>
+        <input type="checkbox" name="content" value="true" {{if .Form.Content}}checked{{end}}>Scrape Content<br>
     </div>
     <div>
         <input type="submit" value="Update">

@@ -28,25 +28,40 @@
 <form action="/schools" method="POST">
     <div>
         <label>Name</label>
+        {{with .Form.FieldErrors.name}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="name" value="">
         <br>
         <label>City</label>
+        {{with .Form.FieldErrors.city}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="city" value="">
         <br>
         <label>State</label>
+        {{with .Form.FieldErrors.state}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="state" value="">
         <br>
         <label>Country</label>
+        {{with .Form.FieldErrors.country}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="country" value="">
         <br>
         <label>Twitter Handle</label>
+        {{with .Form.FieldErrors.handle}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="handle" value="">
     </div>
     <div>
         <label>Options</label>
-        <input type="checkbox" name="top-rated" value="true">Top Rated
+        <input type="checkbox" name="top-rated" value="true" {{if .Form.TopRated }}checked{{end}}>Top Rated
         <br>
-        <input type="checkbox" name="public" value="true">Public
+        <input type="checkbox" name="public" value="true" {{if .Form.Public }}checked{{end}}>Public
     </div>
     <div>
         <input type="submit" value="Submit">

@@ -20,7 +20,8 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/schools", app.schoolAddGet)
 	router.HandlerFunc(http.MethodPost, "/schools", app.schoolAddPost)
 	router.HandlerFunc(http.MethodGet, "/users", app.users)
-	router.HandlerFunc(http.MethodGet, "/users/view/:username", app.userView)
+	router.HandlerFunc(http.MethodGet, "/users/view/:id", app.userView)
+	router.HandlerFunc(http.MethodPost, "/users/view/:id", app.userViewPost)
 	router.HandlerFunc(http.MethodGet, "/users/add", app.userAddGet)
 	router.HandlerFunc(http.MethodPost, "/users/add", app.userAddPost)
 
