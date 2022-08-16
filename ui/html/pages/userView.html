@@ -4,12 +4,19 @@
 {{with .UserViewPage}}
 
 <h1>{{.CurrentUser.ProfileName}}'s Profile</h1>
+<p>Edit or Update {{.CurrentUser.ProfileName}}'s profile here.  Change the fields that you would like to change, and submit the form!  The user will be passed through the workers and profile and network will be updated.</p>
 <form action="/users/view/{{.CurrentUser.ID}}" method="POST">
     <div>
         <label>Handle</label>
+        {{with .Form.FieldErrors.handle}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="handle" value="{{.Form.Handle}}">
         <br>
         <label>School</label>
+        {{with .Form.FieldErrors.school}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <select name="school" id="school">
             <option value="{{.Form.School}}" selected="selected">{{.Form.School}}</option>
             {{range $School := .Schools}}
@@ -18,9 +25,15 @@
         </select>
         <br>
         <label>Start Date</label>
+        {{with .Form.FieldErrors.startDate}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="date" name="startDate" value="{{.Form.StartDate}}">
         <br>
         <label>Cohort</label>
+        {{with .Form.FieldErrors.cohort}}
+            <label class="error">{{.}}</label>
+        {{end}}
         <input type="text" name="cohort" value="{{.Form.Cohort}}">
     </div>
     <div>

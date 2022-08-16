@@ -52,6 +52,11 @@ div .status {
     padding: 0.5em;
 }
 
+div .content {
+    display: grid;
+    justify-items: center;
+}
+
 main {
     padding-top: 1em;
     padding-left: 1em;
@@ -77,3 +82,15 @@ main h2 {
 }
 
 .user-table table {}
+
+form {
+    display: flex;
+    width: 50%;
+    align-items: center;
+    padding: 1em;
+    background-color: #f5f5f5;
+}
+
+.error {
+    color: red;
+}
