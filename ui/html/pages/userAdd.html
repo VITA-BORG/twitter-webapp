@@ -3,9 +3,9 @@
 {{define "main"}}
 {{with .UserAddPage}}
 <div class="content">
-    <h2> Insert or Update a User </h2>
     <form action='/users/add' method='POST'>
-        <div>
+        <h2> Insert or Update a User </h2>
+        <div class="form-main">
             <label>Handle</label>
             {{with .Form.FieldErrors.handle}}
                 <label class="error">{{.}}</label>

@@ -54,7 +54,7 @@ div .status {
 
 div .content {
     display: grid;
-    justify-items: center;
+    grid-template-columns: auto;
 }
 
 main {
@@ -84,11 +84,17 @@ main h2 {
 .user-table table {}
 
 form {
-    display: flex;
-    width: 50%;
-    align-items: center;
-    padding: 1em;
+    padding: 2em;
+    margin: auto;
     background-color: #f5f5f5;
+
+    display: grid;
+    grid-template-columns: auto;
+}
+
+.form-main {
+    display: grid;
+    grid-template-columns: auto;
 }
 
 .error {
