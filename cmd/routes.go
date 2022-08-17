@@ -11,19 +11,23 @@ func (app *application) routes() http.Handler {
 
 	router := httprouter.New()
 
-	//todo: tell router how to handle certain errors
+	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app.notFound(w)
+	})
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
-	router.HandlerFunc(http.MethodGet, "/", app.home)
-	router.HandlerFunc(http.MethodGet, "/schools", app.schoolAddGet)
-	router.HandlerFunc(http.MethodPost, "/schools", app.schoolAddPost)
-	router.HandlerFunc(http.MethodGet, "/users", app.users)
-	router.HandlerFunc(http.MethodGet, "/users/view/:id", app.userView)
-	router.HandlerFunc(http.MethodPost, "/users/view/:id", app.userViewPost)
-	router.HandlerFunc(http.MethodGet, "/users/add", app.userAddGet)
-	router.HandlerFunc(http.MethodPost, "/users/add", app.userAddPost)
+	dynamic := alice.New(app.sessionManager.LoadAndSave)
+
+	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.home))
+	router.Handler(http.MethodGet, "/schools", dynamic.ThenFunc(app.schoolAddGet))
+	router.Handler(http.MethodPost, "/schools", dynamic.ThenFunc(app.schoolAddPost))
+	router.Handler(http.MethodGet, "/users", dynamic.ThenFunc(app.users))
+	router.Handler(http.MethodGet, "/users/view/:id", dynamic.ThenFunc(app.userView))
+	router.Handler(http.MethodPost, "/users/view/:id", dynamic.ThenFunc(app.userViewPost))
+	router.Handler(http.MethodGet, "/users/add", dynamic.ThenFunc(app.userAddGet))
+	router.Handler(http.MethodPost, "/users/add", dynamic.ThenFunc(app.userAddPost))
 
 	//creates a middleware chain
 	standard := alice.New(app.recoverPanic, app.logRequest, securityHeaders)

@@ -12,6 +12,9 @@ import (
 
 	"flag"
 
+	"github.com/alexedwards/scs/pgxstore"
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
 	pgxpool "github.com/jackc/pgx/v4/pgxpool"
 	godotenv "github.com/joho/godotenv"
 	twitterscraper "github.com/n0madic/twitter-scraper"
@@ -55,11 +58,14 @@ type simplifiedUser struct {
 
 //Application dependencies to be injected
 type application struct {
-	errorLog       *log.Logger
-	infoLog        *log.Logger
-	connection     *pgxpool.Pool
-	scraper        twitterscraper.Scraper
-	templateCache  map[string]*template.Template
+	errorLog      *log.Logger
+	infoLog       *log.Logger
+	connection    *pgxpool.Pool
+	scraper       twitterscraper.Scraper
+	templateCache map[string]*template.Template
+	//currently, automatic form decoding not implemented
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 	debug          bool
 	bearerToken    string
 	bearerToken2   string
@@ -126,6 +132,16 @@ func main() {
 		errLog.Fatal(err)
 	}
 
+	//Initializes form decoder
+	infoLog.Println("Initializing form decoder...")
+	formDecoder := form.NewDecoder()
+
+	//Initializes session manager
+	infoLog.Println("Initializing session manager...")
+	sessionManager := scs.New()
+	sessionManager.Store = pgxstore.New(conn)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	//Initializes http clients
 	infoLog.Println("Initializing http clients...")
 	followerClient := http.Client{}
@@ -161,6 +177,8 @@ func main() {
 		scraper:           *twitterscraper.New(),
 		debug:             false,
 		templateCache:     templateCache,
+		formDecoder:       formDecoder,
+		sessionManager:    sessionManager,
 		bearerToken:       bearerToken,
 		bearerToken2:      bearerToken2,
 		apiKey:            apiKey,

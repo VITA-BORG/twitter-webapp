@@ -167,5 +167,22 @@ func CreateTables(conn *pgxpool.Pool) error {
 		return err
 	}
 
+	//Creates sessions table
+	statement = `create table sessions(
+		token text primary key,
+		data bytea NOT NULL,
+		expiry timestamptz NOT NULL
+		)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	statement = "CREATE INDEX sessions_expiry ON sessions (expiry)"
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

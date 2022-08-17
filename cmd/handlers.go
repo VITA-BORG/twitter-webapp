@@ -13,32 +13,32 @@ import (
 )
 
 type userViewForm struct {
-	Handle    string `schema:"handle"`
-	School    string `schema:"school"`
-	StartDate string `schema:"start-date"`
-	Follows   bool   `schema:"follows"`
-	Content   bool   `schema:"content"`
-	Cohort    string `schema:"cohort"`
+	Handle    string `form:"handle"`
+	School    string `form:"school"`
+	StartDate string `form:"start-date"`
+	Follows   bool   `form:"follows"`
+	Content   bool   `form:"content"`
+	Cohort    string `form:"cohort"`
 	validation.Validator
 }
 type userAddForm struct {
-	Handle    string `schema:"handle"`
-	School    string `schema:"school"`
-	StartDate string `schema:"start-date"`
-	Follows   bool   `schema:"follows"`
-	Content   bool   `schema:"content"`
-	Cohort    string `schema:"cohort"`
+	Handle    string `form:"handle"`
+	School    string `form:"school"`
+	StartDate string `form:"start-date"`
+	Follows   bool   `form:"follows"`
+	Content   bool   `form:"content"`
+	Cohort    string `form:"cohort"`
 	validation.Validator
 }
 
 type schoolAddForm struct {
-	Name     string `schema:"name"`
-	City     string `schema:"city"`
-	State    string `schema:"state"`
-	Country  string `schema:"country"`
-	Handle   string `schema:"handle"`
-	TopRated bool   `schema:"top-rated"`
-	Public   bool   `schema:"public"`
+	Name     string `form:"name"`
+	City     string `form:"city"`
+	State    string `form:"state"`
+	Country  string `form:"country"`
+	Handle   string `form:"handle"`
+	TopRated bool   `form:"top-rated"`
+	Public   bool   `form:"public"`
 	validation.Validator
 }
 
@@ -99,6 +99,9 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.populateStatusData(data)
+
+	flash := app.sessionManager.PopString(r.Context(), "flash")
+	data.Flash = flash
 
 	app.renderTemplate(w, http.StatusOK, "userView.html", data)
 }
@@ -197,6 +200,8 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 
 	app.profileChan <- toScrape
 
+	app.sessionManager.Put(r.Context(), "flash", "User updated successfully")
+
 	http.Redirect(w, r, "/users/add", http.StatusSeeOther)
 
 }
@@ -254,6 +259,9 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 
 	app.populateStatusData(data)
 
+	flash := app.sessionManager.PopString(r.Context(), "flash")
+	data.Flash = flash
+
 	app.renderTemplate(w, http.StatusOK, "userAdd.html", data)
 	fmt.Fprintf(w, "User Add Form")
 }
@@ -297,6 +305,7 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		app.populateStatusData(data)
+
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
 		return
 	}
@@ -334,6 +343,8 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 	//sends the user to the scraper to scrape the user's profile
 	app.profileChan <- toScrape
 
+	app.sessionManager.Put(r.Context(), "flash", "User added successfully")
+
 	http.Redirect(w, r, "/users/add", http.StatusSeeOther)
 }
 
@@ -349,6 +360,8 @@ func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 		Schools: schools,
 		Form:    schoolAddForm{},
 	}
+	flash := app.sessionManager.PopString(r.Context(), "flash")
+	data.Flash = flash
 	app.renderTemplate(w, http.StatusOK, "schoolAdd.html", data)
 	fmt.Fprintf(w, "School Add Form")
 }
@@ -408,6 +421,8 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.profileChan <- toScrape
+
+	app.sessionManager.Put(r.Context(), "flash", "School added successfully")
 
 	http.Redirect(w, r, "/schools", http.StatusSeeOther)
 }

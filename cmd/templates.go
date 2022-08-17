@@ -46,6 +46,7 @@ type templateData struct {
 	UserAddPage   userAddPage
 	SchoolAddPage schoolAddPage
 	UserViewPage  userViewPage
+	Flash         string
 }
 
 var functions = template.FuncMap{
