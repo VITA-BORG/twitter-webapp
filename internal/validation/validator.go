@@ -1,10 +1,14 @@
 package validation
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
+
+var EmailEXP = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 //Validator is a struct that contains a map of validation errors.
 type Validator struct {
@@ -55,4 +59,14 @@ func ValidInt(s string) bool {
 func PermittedDate(s string) bool {
 	_, err := time.Parse("2006-01-02", s)
 	return err == nil
+}
+
+//MinChars returns true if a value contains at least n number of characters
+func MinChars(s string, n int) bool {
+	return utf8.RuneCountInString(s) >= n
+}
+
+//Matches returns true if a value matches a regular expression
+func Matches(s string, re *regexp.Regexp) bool {
+	return re.MatchString(s)
 }

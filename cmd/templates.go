@@ -40,13 +40,18 @@ type userViewPage struct {
 	Form        any
 }
 
+type adminSignupPage struct {
+	Form any
+}
+
 type templateData struct {
-	StatusData    statusData
-	UsersPage     usersPage
-	UserAddPage   userAddPage
-	SchoolAddPage schoolAddPage
-	UserViewPage  userViewPage
-	Flash         string
+	StatusData      statusData
+	UsersPage       usersPage
+	UserAddPage     userAddPage
+	SchoolAddPage   schoolAddPage
+	UserViewPage    userViewPage
+	AdminSignupPage adminSignupPage
+	Flash           string
 }
 
 var functions = template.FuncMap{

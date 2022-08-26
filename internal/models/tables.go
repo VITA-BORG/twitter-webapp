@@ -184,5 +184,18 @@ func CreateTables(conn *pgxpool.Pool) error {
 		return err
 	}
 
+	statement = `CREATE TABLE admins (
+		id serial primary key,
+		name varchar(256),
+		email varchar(256) unique,
+		password varchar(256),
+		created_at timestamp
+		)`
+
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

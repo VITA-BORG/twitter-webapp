@@ -42,6 +42,13 @@ type schoolAddForm struct {
 	validation.Validator
 }
 
+type adminSignupForm struct {
+	Name     string `form:"name"`
+	Email    string `form:"email"`
+	Password string `form:"password"`
+	validation.Validator
+}
+
 func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
@@ -425,4 +432,87 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 	app.sessionManager.Put(r.Context(), "flash", "School added successfully")
 
 	http.Redirect(w, r, "/schools", http.StatusSeeOther)
+}
+
+func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
+	data := &templateData{
+		AdminSignupPage: adminSignupPage{
+			Form: adminSignupForm{},
+		},
+	}
+	app.populateStatusData(data)
+	app.renderTemplate(w, http.StatusOK, "signup.html", data)
+	fmt.Fprintln(w, "User Signup GET")
+}
+
+//handles the user signup form submission
+func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
+
+	r.ParseForm()
+
+	form := adminSignupForm{
+		Name:     strings.ToLower(strings.TrimSpace(r.PostForm.Get("name"))),
+		Email:    strings.ToLower(strings.TrimSpace(r.PostForm.Get("email"))),
+		Password: strings.TrimSpace(r.PostForm.Get("password")),
+	}
+
+	form.CheckField(validation.NotEmpty(form.Name), "name", "Name is required")
+	form.CheckField(validation.NotEmpty(form.Email), "email", "Email is required")
+	form.CheckField(validation.NotEmpty(form.Password), "password", "Password is required")
+	form.CheckField(validation.Matches(form.Email, validation.EmailEXP), "email", "Email is invalid")
+	form.CheckField(validation.MinChars(form.Password, 4), "password", "Password must be at least 4 characters")
+
+	if !form.Valid() {
+		app.infoLog.Println("Errors found in User Signup Form")
+		data := &templateData{
+			AdminSignupPage: adminSignupPage{
+				Form: form,
+			},
+		}
+		app.populateStatusData(data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "signup.html", data)
+		return
+	}
+
+	//logic for creating a new user
+	admin := &models.Admin{
+		Name:     form.Name,
+		Email:    form.Email,
+		Password: []byte(form.Password),
+	}
+
+	err := models.InsertAdmin(app.connection, admin)
+	if err != nil {
+		//checks if error is email already exists, if it does, redirects to the signup page with an error message
+		if strings.Contains(err.Error(), "email already exists") {
+			app.infoLog.Println("Email already exists")
+			form.AddFieldError("email", "Email already exists")
+			data := &templateData{
+				AdminSignupPage: adminSignupPage{
+					Form: form,
+				},
+			}
+			app.populateStatusData(data)
+			app.renderTemplate(w, http.StatusUnprocessableEntity, "signup.html", data)
+		}
+		app.serverError(w, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "User created successfully")
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+
+	fmt.Fprintln(w, "User Signup POST")
+}
+
+func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "User Login GET")
+}
+
+func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "User Login POST")
+}
+
+func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "User Logout POST")
 }
