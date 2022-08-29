@@ -44,6 +44,10 @@ type adminSignupPage struct {
 	Form any
 }
 
+type adminLoginPage struct {
+	Form any
+}
+
 type templateData struct {
 	StatusData      statusData
 	UsersPage       usersPage
@@ -51,6 +55,7 @@ type templateData struct {
 	SchoolAddPage   schoolAddPage
 	UserViewPage    userViewPage
 	AdminSignupPage adminSignupPage
+	AdminLoginPage  adminLoginPage
 	Flash           string
 }
 

@@ -12,12 +12,13 @@ var EmailEXP = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]
 
 //Validator is a struct that contains a map of validation errors.
 type Validator struct {
-	FieldErrors map[string]string
+	NonFieldErrors []string
+	FieldErrors    map[string]string
 }
 
 //Valid returns true if there are no validation errors in the FieldErrors
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
 }
 
 //AddFieldError adds a error message to the FieldErrors map.
@@ -69,4 +70,14 @@ func MinChars(s string, n int) bool {
 //Matches returns true if a value matches a regular expression
 func Matches(s string, re *regexp.Regexp) bool {
 	return re.MatchString(s)
+}
+
+//AddNonFieldError adds a non field error message to the NonFieldErrors slice
+func (v *Validator) AddNonFieldError(message string) {
+	//creates an instance of the slice if it is nil
+	if v.NonFieldErrors == nil {
+		v.NonFieldErrors = make([]string, 0)
+	}
+
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }

@@ -49,6 +49,12 @@ type adminSignupForm struct {
 	validation.Validator
 }
 
+type adminLoginForm struct {
+	Email    string `form:"email"`
+	Password string `form:"password"`
+	validation.Validator
+}
+
 func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
@@ -474,11 +480,14 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
+
 	//logic for creating a new user
 	admin := &models.Admin{
-		Name:     form.Name,
-		Email:    form.Email,
-		Password: []byte(form.Password),
+		Name:      form.Name,
+		Email:     form.Email,
+		Password:  []byte(form.Password),
+		CreatedAt: &now,
 	}
 
 	err := models.InsertAdmin(app.connection, admin)
@@ -494,8 +503,9 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 			}
 			app.populateStatusData(data)
 			app.renderTemplate(w, http.StatusUnprocessableEntity, "signup.html", data)
+		} else {
+			app.serverError(w, err)
 		}
-		app.serverError(w, err)
 		return
 	}
 
@@ -506,10 +516,71 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
+	data := &templateData{
+		AdminLoginPage: adminLoginPage{
+			Form: adminLoginForm{},
+		},
+	}
+	app.populateStatusData(data)
+	app.renderTemplate(w, http.StatusOK, "login.html", data)
 	fmt.Fprintln(w, "User Login GET")
 }
 
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
+
+	r.ParseForm()
+
+	form := adminLoginForm{
+		Email:    strings.ToLower(strings.TrimSpace(r.PostForm.Get("email"))),
+		Password: strings.TrimSpace(r.PostForm.Get("password")),
+	}
+
+	form.CheckField(validation.NotEmpty(form.Email), "email", "Email is required")
+	form.CheckField(validation.NotEmpty(form.Password), "password", "Password is required")
+	form.CheckField(validation.Matches(form.Email, validation.EmailEXP), "email", "Email is invalid")
+
+	if !form.Valid() {
+		app.infoLog.Println("Errors found in User Login Form")
+		data := &templateData{
+			AdminLoginPage: adminLoginPage{
+				Form: form,
+			},
+		}
+		app.populateStatusData(data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "login.html", data)
+		return
+	}
+
+	//check credentials
+	id, err := models.AuthenticateAdmin(app.connection, form.Email, form.Password)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid password") {
+			form.AddNonFieldError("Invalid credentials")
+			data := &templateData{
+				AdminLoginPage: adminLoginPage{
+					Form: form,
+				},
+			}
+			app.populateStatusData(data)
+			app.renderTemplate(w, http.StatusUnprocessableEntity, "login.html", data)
+			return
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	//sets the session cookie
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+	//sets the admin id in the session
+	app.sessionManager.Put(r.Context(), "admin_id", id)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
 	fmt.Fprintln(w, "User Login POST")
 }
 

@@ -42,7 +42,26 @@ func InsertAdmin(conn *pgxpool.Pool, admin *Admin) error {
 //AuthenticateAdmin checks if an admin password pair exists and is valid
 //Returns the ID if it is valid
 func AuthenticateAdmin(conn *pgxpool.Pool, email string, password string) (int, error) {
-	return 0, nil
+	var id int
+	var hashed []byte
+
+	statement := "SELECT id, password FROM admins WHERE email = $1"
+	err := conn.QueryRow(context.Background(), statement, email).Scan(&id, &hashed)
+	if err != nil {
+		return 0, err
+	}
+
+	//check if password is valid
+	err = bcrypt.CompareHashAndPassword(hashed, []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return 0, errors.New("invalid password")
+		} else {
+			return 0, err
+		}
+	}
+
+	return id, nil
 }
 
 //AdminExists checks if an admin exists in the database.
