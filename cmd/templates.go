@@ -57,6 +57,8 @@ type templateData struct {
 	AdminSignupPage adminSignupPage
 	AdminLoginPage  adminLoginPage
 	Flash           string
+	IsAdmin         bool
+	CSRFToken       string
 }
 
 var functions = template.FuncMap{
@@ -138,4 +140,11 @@ func (app *application) populateStatusData(data *templateData) {
 	}
 
 	data.StatusData.NumberOfUsers, _ = models.GetUserCount(app.connection)
+}
+
+//populateTemplateData is a helper function that populates the templateData struct with the data needed to render the templates.
+func (app *application) populateTemplateData(r *http.Request, data *templateData) {
+	app.populateStatusData(data)
+	data.Flash = app.sessionManager.PopString(r.Context(), "flash")
+	data.IsAdmin = app.isAdmin(r)
 }

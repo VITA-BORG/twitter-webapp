@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows"}
+var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows", "sessions", "admins"}
 
 //DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
 func DeleteTables(conn *pgxpool.Pool) error {

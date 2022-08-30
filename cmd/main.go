@@ -19,6 +19,7 @@ import (
 	godotenv "github.com/joho/godotenv"
 	twitterscraper "github.com/n0madic/twitter-scraper"
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
+	"github.com/rainbowriverrr/F3Ytwitter/internal/validation"
 )
 
 type followRequest struct {
@@ -228,7 +229,7 @@ func main() {
 		fmt.Printf("\n 2) Start Web Server")
 		fmt.Printf("\n 3) Scrape User and add to Database")
 		fmt.Printf("\n 4) List all users in Database")
-		fmt.Printf("\n 5) Random testing option")
+		fmt.Printf("\n 5) Add Admin User")
 		fmt.Printf("\n 6) Quit")
 		fmt.Printf("\n")
 
@@ -262,8 +263,7 @@ func main() {
 				fmt.Printf("%s\n", user)
 			}
 		case '5':
-			fmt.Printf("\n~~Testing Option~~\n")
-			profileChan <- &simplifiedUser{Username: "nyamedev", IsParticipant: true, StartDate: time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)}
+			app.addAdmin(reader)
 		case '6':
 			fmt.Printf("\n~~Quitting~~\n")
 			os.Exit(0)
@@ -288,6 +288,31 @@ func (app *application) scrapeCLI(r *bufio.Reader) {
 		return
 	}
 	err = app.addOrUpdateUser(user)
+	if err != nil {
+		app.errorLog.Println(err)
+	}
+}
+
+func (app *application) addAdmin(r *bufio.Reader) {
+	fmt.Printf("\n~~Please enter an email to add as an admin~~\n")
+	username, _ := r.ReadString('\n')
+	username = username[:len(username)-1]
+	//checks if username is valid email address
+	if !validation.Matches(username, validation.EmailEXP) {
+		fmt.Printf("\n~~%s is not a valid email address.~~\n", username)
+		return
+	}
+	r.Reset(os.Stdin)
+	fmt.Printf("\n~~Please enter a password for the admin account~~\n")
+	password, _ := r.ReadString('\n')
+	password = password[:len(password)-1]
+	//checks if password is longer than 4 characters
+	if len(password) < 4 {
+		fmt.Printf("\n~~Password must be longer than 4 characters.~~\n")
+		return
+	}
+	//adds admin
+	err := models.InsertAdmin(app.connection, &models.Admin{Email: username, Password: []byte(password)})
 	if err != nil {
 		app.errorLog.Println(err)
 	}

@@ -2,70 +2,72 @@
 
 {{define "main"}}
 {{with .SchoolAddPage}}
-<h1>Schools</h1>
-<h2>Schools in the System</h2>
+<div class="content">
+    <h1>Schools</h1>
+    <h2>Schools in the System</h2>
 
-<div class="user-table">
-    <table>
-        <tr>
-            <th>School Name</th>
-            <th>School City</th>
-            <th>School Type</th>
-            <th>Rating</th>
-        </tr>
-        {{range .Schools}}
-        <tr>
-            <td>{{.Name}}</td>
-            <td>{{.City}}</td>
-            <td>{{if .Public}} Public {{else}} Private {{end}}</td>
-            <td>{{if .TopRated}} Top Rated {{else}} Not Top Rated {{end}}</td>
-        </tr>
-        {{end}}
-    </table>
+    <div class="user-table">
+        <table>
+            <tr>
+                <th>School Name</th>
+                <th>School City</th>
+                <th>School Type</th>
+                <th>Rating</th>
+            </tr>
+            {{range .Schools}}
+            <tr>
+                <td>{{.Name}}</td>
+                <td>{{.City}}</td>
+                <td>{{if .Public}} Public {{else}} Private {{end}}</td>
+                <td>{{if .TopRated}} Top Rated {{else}} Not Top Rated {{end}}</td>
+            </tr>
+            {{end}}
+        </table>
+    </div>
+
+    <h2>Add a School</h2>
+    <form action="/schools" method="POST">
+        <div class="form-main">
+            <label>Name</label>
+            {{with .Form.FieldErrors.name}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="text" name="name" value="">
+            <br>
+            <label>City</label>
+            {{with .Form.FieldErrors.city}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="text" name="city" value="">
+            <br>
+            <label>State</label>
+            {{with .Form.FieldErrors.state}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="text" name="state" value="">
+            <br>
+            <label>Country</label>
+            {{with .Form.FieldErrors.country}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="text" name="country" value="">
+            <br>
+            <label>Twitter Handle</label>
+            {{with .Form.FieldErrors.handle}}
+                <label class="error">{{.}}</label>
+            {{end}}
+            <input type="text" name="handle" value="">
+        </div>
+        <div>
+            <label>Options</label>
+            <input type="checkbox" name="top-rated" value="true" {{if .Form.TopRated }}checked{{end}}>Top Rated
+            <br>
+            <input type="checkbox" name="public" value="true" {{if .Form.Public }}checked{{end}}>Public
+        </div>
+        <div>
+            <input type="submit" value="Submit">
+        </div>
+    </form>
 </div>
-
-<h2>Add a School</h2>
-<form action="/schools" method="POST">
-    <div>
-        <label>Name</label>
-        {{with .Form.FieldErrors.name}}
-            <label class="error">{{.}}</label>
-        {{end}}
-        <input type="text" name="name" value="">
-        <br>
-        <label>City</label>
-        {{with .Form.FieldErrors.city}}
-            <label class="error">{{.}}</label>
-        {{end}}
-        <input type="text" name="city" value="">
-        <br>
-        <label>State</label>
-        {{with .Form.FieldErrors.state}}
-            <label class="error">{{.}}</label>
-        {{end}}
-        <input type="text" name="state" value="">
-        <br>
-        <label>Country</label>
-        {{with .Form.FieldErrors.country}}
-            <label class="error">{{.}}</label>
-        {{end}}
-        <input type="text" name="country" value="">
-        <br>
-        <label>Twitter Handle</label>
-        {{with .Form.FieldErrors.handle}}
-            <label class="error">{{.}}</label>
-        {{end}}
-        <input type="text" name="handle" value="">
-    </div>
-    <div>
-        <label>Options</label>
-        <input type="checkbox" name="top-rated" value="true" {{if .Form.TopRated }}checked{{end}}>Top Rated
-        <br>
-        <input type="checkbox" name="public" value="true" {{if .Form.Public }}checked{{end}}>Public
-    </div>
-    <div>
-        <input type="submit" value="Submit">
-    </div>
-</form>
 {{end}}
 {{end}}

@@ -111,7 +111,7 @@ func (app *application) userView(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 
 	flash := app.sessionManager.PopString(r.Context(), "flash")
 	data.Flash = flash
@@ -163,7 +163,7 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 				Form:        form,
 			},
 		}
-		app.populateStatusData(data)
+		app.populateTemplateData(r, data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "userView.html", data)
 		return
 	}
@@ -233,7 +233,7 @@ func (app *application) users(w http.ResponseWriter, r *http.Request) {
 	data := &templateData{
 		UsersPage: usersData,
 	}
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 
 	app.renderTemplate(w, http.StatusOK, "users.html", data)
 
@@ -248,7 +248,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &templateData{}
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 
 	app.renderTemplate(w, http.StatusOK, "dashboard.html", data)
 
@@ -270,7 +270,7 @@ func (app *application) userAddGet(w http.ResponseWriter, r *http.Request) {
 		UserAddPage: userAddData,
 	}
 
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 
 	flash := app.sessionManager.PopString(r.Context(), "flash")
 	data.Flash = flash
@@ -317,7 +317,7 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 				Form:    form,
 			},
 		}
-		app.populateStatusData(data)
+		app.populateTemplateData(r, data)
 
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "userAdd.html", data)
 		return
@@ -363,7 +363,7 @@ func (app *application) userAddPost(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) schoolAddGet(w http.ResponseWriter, r *http.Request) {
 	data := &templateData{}
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 	schools, err := models.GetAllSchools(app.connection)
 	if err != nil {
 		app.serverError(w, err)
@@ -412,7 +412,7 @@ func (app *application) schoolAddPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data.SchoolAddPage.Schools = schools
-		app.populateStatusData(data)
+		app.populateTemplateData(r, data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "schoolAdd.html", data)
 		return
 	}
@@ -446,7 +446,7 @@ func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 			Form: adminSignupForm{},
 		},
 	}
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 	app.renderTemplate(w, http.StatusOK, "signup.html", data)
 	fmt.Fprintln(w, "User Signup GET")
 }
@@ -475,7 +475,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 				Form: form,
 			},
 		}
-		app.populateStatusData(data)
+		app.populateTemplateData(r, data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "signup.html", data)
 		return
 	}
@@ -501,7 +501,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 					Form: form,
 				},
 			}
-			app.populateStatusData(data)
+			app.populateTemplateData(r, data)
 			app.renderTemplate(w, http.StatusUnprocessableEntity, "signup.html", data)
 		} else {
 			app.serverError(w, err)
@@ -521,7 +521,7 @@ func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
 			Form: adminLoginForm{},
 		},
 	}
-	app.populateStatusData(data)
+	app.populateTemplateData(r, data)
 	app.renderTemplate(w, http.StatusOK, "login.html", data)
 	fmt.Fprintln(w, "User Login GET")
 }
@@ -546,7 +546,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 				Form: form,
 			},
 		}
-		app.populateStatusData(data)
+		app.populateTemplateData(r, data)
 		app.renderTemplate(w, http.StatusUnprocessableEntity, "login.html", data)
 		return
 	}
@@ -554,19 +554,14 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	//check credentials
 	id, err := models.AuthenticateAdmin(app.connection, form.Email, form.Password)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid password") {
-			form.AddNonFieldError("Invalid credentials")
-			data := &templateData{
-				AdminLoginPage: adminLoginPage{
-					Form: form,
-				},
-			}
-			app.populateStatusData(data)
-			app.renderTemplate(w, http.StatusUnprocessableEntity, "login.html", data)
-			return
-		} else {
-			app.serverError(w, err)
+		form.AddNonFieldError("Invalid credentials")
+		data := &templateData{
+			AdminLoginPage: adminLoginPage{
+				Form: form,
+			},
 		}
+		app.populateTemplateData(r, data)
+		app.renderTemplate(w, http.StatusUnprocessableEntity, "login.html", data)
 		return
 	}
 
@@ -585,5 +580,20 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "User Logout POST")
+
+	err := app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	//remove the admin id from the session
+	app.sessionManager.Remove(r.Context(), "admin_id")
+	app.sessionManager.Put(r.Context(), "flash", "You have been logged out")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+//isAdmin checks if the user is an admin (logged in)
+func (app *application) isAdmin(r *http.Request) bool {
+	return app.sessionManager.Exists(r.Context(), "admin_id")
 }

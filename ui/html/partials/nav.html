@@ -4,21 +4,24 @@
         <li class="nav-item">
             <a class="nav-link" href="/">Home</a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/users">Users</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/schools">Schools</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/user/signup">Signup</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="/user/login">Login</a>
-        </li>
-        <form action='/user/logout' method='post'>
-            <button>Logout</button>
-        </form>
+        {{if .IsAdmin}}
+            <li class="nav-item">
+                <a class="nav-link" href="/users">Users</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/schools">Schools</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/user/signup">Signup</a>
+            </li>
+            <form action='/user/logout' method='post'>
+                <button>Logout</button>
+            </form>
+        {{else}}
+            <li class="nav-item">
+                <a class="nav-link" href="/user/login">Login</a>
+            </li>
+        {{end}}
     </ul>
 </div>
 {{end}}
