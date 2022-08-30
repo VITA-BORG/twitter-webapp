@@ -32,6 +32,7 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/users/view/:id", protected.ThenFunc(app.userView))
 	router.Handler(http.MethodPost, "/users/view/:id", protected.ThenFunc(app.userViewPost))
 	router.Handler(http.MethodGet, "/users/add", protected.ThenFunc(app.userAddGet))
+	router.Handler(http.MethodPost, "/users/add", protected.ThenFunc(app.userAddPost))
 	router.Handler(http.MethodGet, "/user/signup", protected.ThenFunc(app.userSignup))
 	router.Handler(http.MethodPost, "/user/signup", protected.ThenFunc(app.userSignupPost))
 	router.Handler(http.MethodPost, "/user/logout", protected.ThenFunc(app.userLogoutPost))
