@@ -215,7 +215,7 @@ func (app *application) FollowWorker() {
 		//sends request for follows to the follow queue channel
 		app.infoLog.Println("Sending request for follows for user:", user.ID)
 		app.followQueue <- request
-		//waits for the response from the follow queue channel
+		// //waits for the response from the follow queue channel
 		app.infoLog.Printf("Waiting for follow response for user: %s", user.Username)
 		follows := <-upstreamChan
 		close(upstreamChan)
@@ -232,8 +232,13 @@ func (app *application) FollowWorker() {
 			app.errorLog.Println("Error updating followings:", err)
 			continue
 		}
-		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 
+		app.infoLog.Printf("FOLLOW WORKER: Printing all Follows for user: %s\n", user.Username)
+		for _, follow := range follows {
+			app.infoLog.Printf("Follower: %s, Followee: %s\n", follow.FollowerUsername, follow.FolloweeUsername)
+		}
+
+		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
 			follows: follows,
 			users:   "followings",
@@ -278,6 +283,12 @@ func (app *application) FollowerWorker() {
 		if err != nil {
 			app.errorLog.Println("Error updating followers:", err)
 			continue
+		}
+
+		app.infoLog.Printf("FOLLOWER WORKER: Printing out all followers for user: %s\n", user.Username)
+		//print all the followers
+		for _, follower := range followers {
+			app.infoLog.Printf("Follower: %s | Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
 		}
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
