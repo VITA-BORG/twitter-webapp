@@ -317,7 +317,7 @@ func (app *application) ConnectionsWorker() {
 				continue
 			}
 
-			//scrapes the user
+			//scrapes the user so that you can check for their follower and following count
 			currUser, err := app.scrapeUser(currentUser.Username)
 			if err != nil {
 				app.errorLog.Println("Error scraping user:", err)
@@ -340,6 +340,8 @@ func (app *application) ConnectionsWorker() {
 				close(followerChan)
 				app.infoLog.Printf("%d followers recieved for user: %s", len(followers), currentUser.Username)
 			}
+
+			// TODO: Error with following scrape, always scraping the same person
 
 			app.infoLog.Println("Sending request for followings for user:", currentUser.Username)
 			if currUser.Following < app.followLimit {
