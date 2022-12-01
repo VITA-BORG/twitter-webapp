@@ -203,11 +203,11 @@ func (app *application) getFollows(user *simplifiedUser) ([]*models.Follow, erro
 				}
 
 				follows = append(follows, &models.Follow{
-					FollowerID:       followerID,
-					FollowerUsername: follower.Username,
+					FollowerID:       user.ID,
+					FollowerUsername: user.Username,
 					CreatedAt:        createdAt,
-					FolloweeID:       user.ID,
-					FolloweeUsername: user.Username,
+					FolloweeID:       followerID,
+					FolloweeUsername: follower.Username,
 					CollectedAt:      currTime,
 				})
 			}
