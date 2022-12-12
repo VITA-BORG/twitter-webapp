@@ -149,13 +149,13 @@ func main() {
 
 	//Initializing channels
 	infoLog.Println("Initializing channels...")
-	profileChan := make(chan *simplifiedUser)
-	followChan := make(chan *simplifiedUser)
-	followerChan := make(chan *simplifiedUser)
-	tweetsChan := make(chan *simplifiedUser)
-	connectionsChan := make(chan connectionsRequest)
-	followQueue := make(chan *followRequest)
-	followerQueue := make(chan *followRequest)
+	profileChan := make(chan *simplifiedUser, 100)
+	followChan := make(chan *simplifiedUser, 3000)
+	followerChan := make(chan *simplifiedUser, 3000)
+	tweetsChan := make(chan *simplifiedUser, 100)
+	connectionsChan := make(chan connectionsRequest, 100)
+	followQueue := make(chan *followRequest, 1000)
+	followerQueue := make(chan *followRequest, 1000)
 
 	defer close(profileChan)
 	defer close(followChan)

@@ -129,6 +129,12 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = r.ParseForm()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
 	form := userViewForm{
 		Handle:    strings.TrimSpace(r.PostForm.Get("handle")),
 		School:    strings.TrimSpace(r.PostForm.Get("school")),

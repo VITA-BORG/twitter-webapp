@@ -233,10 +233,10 @@ func (app *application) FollowWorker() {
 			continue
 		}
 
-		app.infoLog.Printf("FOLLOW WORKER: Printing all Follows for user: %s\n", user.Username)
-		for _, follow := range follows {
-			app.infoLog.Printf("Follower: %s, Followee: %s\n", follow.FollowerUsername, follow.FolloweeUsername)
-		}
+		// app.infoLog.Printf("FOLLOW WORKER: Printing all Follows for user: %s\n", user.Username)
+		// for _, follow := range follows {
+		// 	app.infoLog.Printf("Follower: %s, Followee: %s\n", follow.FollowerUsername, follow.FolloweeUsername)
+		// }
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
@@ -285,11 +285,11 @@ func (app *application) FollowerWorker() {
 			continue
 		}
 
-		app.infoLog.Printf("FOLLOWER WORKER: Printing out all followers for user: %s\n", user.Username)
-		//print all the followers
-		for _, follower := range followers {
-			app.infoLog.Printf("Follower: %s | Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
-		}
+		// app.infoLog.Printf("FOLLOWER WORKER: Printing out all followers for user: %s\n", user.Username)
+		// //print all the followers
+		// for _, follower := range followers {
+		// 	app.infoLog.Printf("Follower: %s | Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
+		// }
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
