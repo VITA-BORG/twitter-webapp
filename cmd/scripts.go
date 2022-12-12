@@ -155,7 +155,7 @@ func guessGender(bio string) *string {
 	var gender *string
 
 	lowered := strings.ToLower(bio)
-	matched, _ := regexp.MatchString(`( they/them)?( they )?( them ?)?`, lowered)
+	matched, _ := regexp.MatchString(`( they/them)`, lowered)
 	if matched {
 		x := "X"
 		gender = &x
