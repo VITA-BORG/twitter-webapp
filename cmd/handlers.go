@@ -129,10 +129,16 @@ func (app *application) userViewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = r.ParseForm()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
 	form := userViewForm{
 		Handle:    strings.TrimSpace(r.PostForm.Get("handle")),
 		School:    strings.TrimSpace(r.PostForm.Get("school")),
-		StartDate: strings.TrimSpace(r.PostForm.Get("start-date")),
+		StartDate: strings.TrimSpace(r.PostForm.Get("startDate")),
 		Cohort:    strings.TrimSpace(r.PostForm.Get("cohort")),
 		Follows:   r.PostForm.Get("follows") == "true",
 		Content:   r.PostForm.Get("content") == "true",

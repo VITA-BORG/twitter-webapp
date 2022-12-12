@@ -155,19 +155,19 @@ func guessGender(bio string) *string {
 	var gender *string
 
 	lowered := strings.ToLower(bio)
-	matched, _ := regexp.MatchString(`/?they/?`, lowered)
+	matched, _ := regexp.MatchString(`( they/them)`, lowered)
 	if matched {
 		x := "X"
 		gender = &x
 		return gender
 	}
-	matched, _ = regexp.MatchString(`/?she/?`, lowered)
+	matched, _ = regexp.MatchString(`( she/her)?( she ?)?( her ?)?`, lowered)
 	if matched {
 		f := "F"
 		gender = &f
 		return gender
 	}
-	matched, _ = regexp.MatchString(`/?he/?`, lowered)
+	matched, _ = regexp.MatchString(`( he/him)?( he ?)?( him ?)?`, lowered)
 	if matched {
 		m := "M"
 		gender = &m
@@ -277,7 +277,6 @@ func (app *application) scrapeMentions(tweets []*twitterscraper.Tweet, scrapeRet
 					currUser, err = app.scrapeUser(mention)
 					if err != nil {
 						app.errorLog.Println("Error scraping user: ", err)
-						app.errorLog.Println(err)
 					} else {
 						//Only user mention if user was successfully scraped
 						userSlice = append(userSlice, currUser)
