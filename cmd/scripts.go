@@ -29,8 +29,8 @@ func (app *application) resetTables() error {
 	return nil
 }
 
-//scrapeUser scrapes a user's twitter profile and returns a models.User struct.
-//TODO: add error checking for handles that don't exist
+// scrapeUser scrapes a user's twitter profile and returns a models.User struct.
+// TODO: add error checking for handles that don't exist
 func (app *application) scrapeUser(handle string) (*models.User, error) {
 	app.infoLog.Printf("Scraping user %s", handle)
 	profile, err := app.scraper.GetProfile(handle)
@@ -68,8 +68,8 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 	}, nil
 }
 
-//addOrUpdateUser adds a user to the database if it doesn't already exist.
-//If the user already exists, it updates the user's information.
+// addOrUpdateUser adds a user to the database if it doesn't already exist.
+// If the user already exists, it updates the user's information.
 func (app *application) addOrUpdateUser(user *models.User) error {
 	if !models.UserExists(app.connection, user.Handle) { //inserts user if they don't exist in the database
 		err := models.InsertUser(app.connection, user)
@@ -82,8 +82,8 @@ func (app *application) addOrUpdateUser(user *models.User) error {
 	return nil
 }
 
-//getUserByHandle returns a user from the database based on a handle
-//This adds a layer between the api handler and the database models
+// getUserByHandle returns a user from the database based on a handle
+// This adds a layer between the api handler and the database models
 func (app *application) getUserByHandle(handle string) (*models.User, error) {
 
 	var user *models.User
@@ -100,8 +100,8 @@ func (app *application) getUserByHandle(handle string) (*models.User, error) {
 
 }
 
-//getAllUsernames wraps getUsernames and returns a slice of strings.
-//Uses app.errorLog to log errors.
+// getAllUsernames wraps getUsernames and returns a slice of strings.
+// Uses app.errorLog to log errors.
 func (app *application) getAllUsernames() []string {
 	usernames, err := models.GetAllUsernames(app.connection)
 	if err != nil {
@@ -110,8 +110,8 @@ func (app *application) getAllUsernames() []string {
 	return usernames
 }
 
-//ScrapeTweets scrapes a user's tweets and returns a slice of twitterscraper.Tweet structs.
-//Note: Some retweets may be shortened.
+// ScrapeTweets scrapes a user's tweets and returns a slice of twitterscraper.Tweet structs.
+// Note: Some retweets may be shortened.
 func (app *application) scrapeTweets(handle string, from time.Time) []*twitterscraper.Tweet {
 	cursor := ""
 	var tweets []*twitterscraper.Tweet
@@ -148,8 +148,8 @@ func (app *application) scrapeTweets(handle string, from time.Time) []*twittersc
 	return tweetsSlice
 }
 
-//guessGender guesses the user's gender by looking for personal pronouns.
-//If no personal pronouns are found, an empty string is returned
+// guessGender guesses the user's gender by looking for personal pronouns.
+// If no personal pronouns are found, an empty string is returned
 func guessGender(bio string) *string {
 
 	var gender *string
@@ -177,8 +177,8 @@ func guessGender(bio string) *string {
 	return gender
 }
 
-//isPerson checks if a user is a person by looking for keywords that indicate "non-person" status in their bio.
-//If no keywords are found, true is returned.
+// isPerson checks if a user is a person by looking for keywords that indicate "non-person" status in their bio.
+// If no keywords are found, true is returned.
 func isPerson(bio string) bool {
 	words := strings.Split(strings.ToLower(bio), " ")
 	for _, curr := range words {
@@ -191,7 +191,7 @@ func isPerson(bio string) bool {
 	return true
 }
 
-//getMentions returns a slice of strings of the handles of users mentioned in a tweet.
+// getMentions returns a slice of strings of the handles of users mentioned in a tweet.
 func getMentions(text string) []string {
 	mentions := []string{}
 	words := strings.Split(strings.ToLower(text), " ")
@@ -222,7 +222,7 @@ func getMentions(text string) []string {
 	return mentions
 }
 
-//getBioTags scrapes the handles of users mentioned in a biography
+// getBioTags scrapes the handles of users mentioned in a biography
 func getBioTags(bio string) []string {
 	tags := []string{}
 	//removes all non-alphanumeric characters
@@ -238,11 +238,11 @@ func getBioTags(bio string) []string {
 
 }
 
-//scrapeMentions scrapes the users mentioned in a tweet
-//returns a slice of models.user structs of users mentioned in the tweet that do not exist in the database
-//and a slice of models.mention structs of mentions that do not exist in the database
-//Skips mentions in retweets by default.
-//TODO Parralelize
+// scrapeMentions scrapes the users mentioned in a tweet
+// returns a slice of models.user structs of users mentioned in the tweet that do not exist in the database
+// and a slice of models.mention structs of mentions that do not exist in the database
+// Skips mentions in retweets by default.
+// TODO Parralelize
 func (app *application) scrapeMentions(tweets []*twitterscraper.Tweet, scrapeRetweets ...bool) ([]*models.User, []*models.Mention) {
 
 	//By default, retweets are skipped
@@ -297,7 +297,7 @@ func (app *application) scrapeMentions(tweets []*twitterscraper.Tweet, scrapeRet
 	return userSlice, mentionSlice
 }
 
-//add Reply transforms a twitterscraper.Tweet to a models.Reply and adds it to the database
+// add Reply transforms a twitterscraper.Tweet to a models.Reply and adds it to the database
 func (app *application) addReply(tweet *twitterscraper.Tweet) error {
 	tweetID, err := strconv.ParseInt(tweet.ID, 10, 64)
 	if err != nil {
@@ -329,8 +329,8 @@ func (app *application) addReply(tweet *twitterscraper.Tweet) error {
 	return models.InsertReply(app.connection, &toAdd)
 }
 
-//updateReplies checks if the reply exists in the database before adding it
-//also adds user replied to if they do not exist.
+// updateReplies checks if the reply exists in the database before adding it
+// also adds user replied to if they do not exist.
 func (app *application) updateReplies(replies []*models.Reply) error {
 	for _, reply := range replies {
 		if !models.ReplyExists(app.connection, reply) {
@@ -344,9 +344,9 @@ func (app *application) updateReplies(replies []*models.Reply) error {
 	return nil
 }
 
-//addTweet transforms a twitterscraper.Tweet object into a models.Tweet object and adds it to the database
-//checks if the tweet is a retweet, if it is, the retweet is added to the database if it does not already exist
-//also adds hashtags
+// addTweet transforms a twitterscraper.Tweet object into a models.Tweet object and adds it to the database
+// checks if the tweet is a retweet, if it is, the retweet is added to the database if it does not already exist
+// also adds hashtags
 func (app *application) addTweet(tweet *twitterscraper.Tweet) error {
 
 	now := time.Now()
@@ -460,7 +460,7 @@ func (app *application) addTweet(tweet *twitterscraper.Tweet) error {
 	return nil
 }
 
-//updateTweets updates the database with new tweets
+// updateTweets updates the database with new tweets
 func (app *application) updateTweets(tweets []*twitterscraper.Tweet) error {
 
 	for _, tweet := range tweets {
@@ -472,8 +472,8 @@ func (app *application) updateTweets(tweets []*twitterscraper.Tweet) error {
 	return nil
 }
 
-//updateFollows updates the database with the new follows
-//also updates the database with the new users
+// updateFollows updates the database with the new follows
+// also updates the database with the new users
 func (app *application) updateFollows(follows []*models.Follow) error {
 	for _, follow := range follows {
 		//check if the follow already exists in the database
@@ -519,7 +519,7 @@ func (app *application) updateFollows(follows []*models.Follow) error {
 	return nil
 }
 
-//addSchool adds a school in the database.  It will also assign the school an ID.
+// addSchool adds a school in the database.  It will also assign the school an ID.
 func (app *application) addSchool(school *simplifiedSchool) error {
 	var toAdd models.School
 
@@ -559,7 +559,7 @@ func (app *application) addSchool(school *simplifiedSchool) error {
 	return nil
 }
 
-//addBioTag adds a biotag to the database, checks if it already exists
+// addBioTag adds a biotag to the database, checks if it already exists
 func (app *application) addBioTag(bioTag *models.BioTag) error {
 	if !models.TagExists(app.connection, bioTag.UserID, bioTag.MentionedUserID) {
 		err := models.InsertBioTag(app.connection, bioTag)
@@ -569,4 +569,36 @@ func (app *application) addBioTag(bioTag *models.BioTag) error {
 		}
 	}
 	return nil
+}
+
+// converts the simplifiedUser to a simple request.  All unnecessary fields are removed
+func simpleUsertoSimpleRequest(user *simplifiedUser) *models.SimpleRequest {
+	return &models.SimpleRequest{
+		ID:                 user.BackupID,
+		UID:                user.ID,
+		Username:           user.Username,
+		Scrape_connections: user.ScrapeConnections,
+	}
+}
+
+// converts the simple request to a simplified user.
+func simpleRequstToSimpleUser(request *models.SimpleRequest) *simplifiedUser {
+	return &simplifiedUser{
+		ID:                request.UID,
+		Username:          request.Username,
+		ScrapeConnections: request.Scrape_connections,
+		BackupID:          request.ID,
+	}
+}
+
+func (app *application) populateFollowQueue(users []*simplifiedUser) {
+	for _, user := range users {
+		app.followChan <- user
+	}
+}
+
+func (app *application) populateFollowerQueue(users []*simplifiedUser) {
+	for _, user := range users {
+		app.followerChan <- user
+	}
 }

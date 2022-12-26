@@ -43,7 +43,7 @@ type simplifiedSchool struct {
 	TwitterHandle string `json:"twitter_handle"`
 }
 
-//User structure used to pass data between goroutines.  This is used by the ProfileWorker, FollowerWorker, FollowingWorker, and TweetsWorker goroutines.
+// User structure used to pass data between goroutines.  This is used by the ProfileWorker, FollowerWorker, FollowingWorker, and TweetsWorker goroutines.
 type simplifiedUser struct {
 	ID                  int64             `json:"id"`
 	Username            string            `json:"username"`
@@ -55,9 +55,10 @@ type simplifiedUser struct {
 	StartDate           time.Time         `json:"startDate"`
 	ScrapeConnections   bool              `json:"scrape_connections"`
 	ScrapeContent       bool              `json:"scrape_content"`
+	BackupID            int64             `json:"backup_id"`
 }
 
-//Application dependencies to be injected
+// Application dependencies to be injected
 type application struct {
 	errorLog      *log.Logger
 	infoLog       *log.Logger
