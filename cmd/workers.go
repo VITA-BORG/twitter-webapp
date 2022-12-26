@@ -355,8 +355,6 @@ func (app *application) ConnectionsWorker() {
 				app.infoLog.Printf("%d followers recieved for user: %s", len(followers), currentUser.Username)
 			}
 
-			// TODO: Error with following scrape, always scraping the same person
-
 			app.infoLog.Println("Sending request for followings for user:", currentUser.Username)
 			if currUser.Following < app.followLimit {
 				followingChan := make(chan []*models.Follow)
@@ -439,8 +437,24 @@ func (app *application) FollowingQueue() {
 
 func (app *application) FollowBackupWorker() {
 	//reads from the follow backup channel and inserts the follow into the database
+
+	for request := range app.followBackupChan {
+		if request.remove {
+
+		} else {
+			models.InsertSimpleRequest(app.connection, request.request, "follow_requests")
+		}
+	}
+
 }
 
-func (app *application) followingBackupWorker() {
+func (app *application) FollowerBackupWorker() {
 	//reads from the following backup channel and inserts the following into the database
+	for request := range app.followBackupChan {
+		if request.remove {
+
+		} else {
+			models.InsertSimpleRequest(app.connection, request.request, "follow_requests")
+		}
+	}
 }

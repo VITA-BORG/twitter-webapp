@@ -15,9 +15,10 @@ type SimpleRequest struct {
 }
 
 // InsertSimpleRequest inserts a SimpleRequest object into the database.  No checking.
-func InsertSimpleRequest(conn *pgxpool.Pool, uid int64, username string, connections bool) error {
-	statement := "INSERT INTO simple_requests(id, username, scrape_connections) VALUES($1, $2, $3)"
-	_, err := conn.Exec(context.Background(), statement, uid, username, connections)
+func InsertSimpleRequest(conn *pgxpool.Pool, request *SimpleRequest, table string) error {
+
+	statement := "INSERT INTO " + table + "(id, username, scrape_connections) VALUES($1, $2, $3)"
+	_, err := conn.Exec(context.Background(), statement, request.UID, request.Username, request.Scrape_connections)
 	return err
 }
 

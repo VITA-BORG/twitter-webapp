@@ -22,6 +22,11 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/validation"
 )
 
+type backupRequest struct {
+	request *models.SimpleRequest
+	remove  bool
+}
+
 type followRequest struct {
 	User     *models.SimpleRequest
 	upstream chan []*models.Follow
@@ -75,13 +80,15 @@ type application struct {
 	secretKey      string
 	followerClient http.Client
 	//expects simplifiedUser struct
-	profileChan     chan *simplifiedUser
-	followChan      chan *models.SimpleRequest
-	followerChan    chan *models.SimpleRequest
-	tweetsChan      chan *simplifiedUser
-	connectionsChan chan connectionsRequest
-	followQueue     chan *followRequest
-	followerQueue   chan *followRequest
+	profileChan        chan *simplifiedUser
+	followChan         chan *models.SimpleRequest
+	followerChan       chan *models.SimpleRequest
+	followBackupChan   chan *backupRequest
+	followerBackupChan chan *backupRequest
+	tweetsChan         chan *simplifiedUser
+	connectionsChan    chan connectionsRequest
+	followQueue        chan *followRequest
+	followerQueue      chan *followRequest
 	//statuses of channels
 	profileStatus     string
 	followStatus      string
@@ -153,6 +160,8 @@ func main() {
 	profileChan := make(chan *simplifiedUser, 100)
 	followChan := make(chan *models.SimpleRequest, 3000)
 	followerChan := make(chan *models.SimpleRequest, 3000)
+	followBackupChan := make(chan *backupRequest, 10)
+	followerBackupChan := make(chan *backupRequest, 10)
 	tweetsChan := make(chan *simplifiedUser, 100)
 	connectionsChan := make(chan connectionsRequest, 100)
 	followQueue := make(chan *followRequest, 1000)
@@ -161,6 +170,8 @@ func main() {
 	defer close(profileChan)
 	defer close(followChan)
 	defer close(followerChan)
+	defer close(followBackupChan)
+	defer close(followerBackupChan)
 	defer close(tweetsChan)
 	defer close(connectionsChan)
 	defer close(followQueue)
@@ -173,32 +184,34 @@ func main() {
 	connectionsStatus := "idle"
 
 	app := &application{
-		errorLog:          errLog,
-		infoLog:           infoLog,
-		connection:        conn,
-		scraper:           *twitterscraper.New(),
-		debug:             false,
-		templateCache:     templateCache,
-		formDecoder:       formDecoder,
-		sessionManager:    sessionManager,
-		bearerToken:       bearerToken,
-		bearerToken2:      bearerToken2,
-		apiKey:            apiKey,
-		secretKey:         secretKey,
-		followerClient:    followerClient,
-		profileChan:       profileChan,
-		followChan:        followChan,
-		followerChan:      followerChan,
-		tweetsChan:        tweetsChan,
-		connectionsChan:   connectionsChan,
-		followQueue:       followQueue,
-		followerQueue:     followerQueue,
-		profileStatus:     profileStatus,
-		followStatus:      followStatus,
-		followingStatus:   followingStatus,
-		tweetsStatus:      tweetsStatus,
-		connectionsStatus: connectionsStatus,
-		followLimit:       1000,
+		errorLog:           errLog,
+		infoLog:            infoLog,
+		connection:         conn,
+		scraper:            *twitterscraper.New(),
+		debug:              false,
+		templateCache:      templateCache,
+		formDecoder:        formDecoder,
+		sessionManager:     sessionManager,
+		bearerToken:        bearerToken,
+		bearerToken2:       bearerToken2,
+		apiKey:             apiKey,
+		secretKey:          secretKey,
+		followerClient:     followerClient,
+		profileChan:        profileChan,
+		followChan:         followChan,
+		followerChan:       followerChan,
+		followBackupChan:   followBackupChan,
+		followerBackupChan: followerBackupChan,
+		tweetsChan:         tweetsChan,
+		connectionsChan:    connectionsChan,
+		followQueue:        followQueue,
+		followerQueue:      followerQueue,
+		profileStatus:      profileStatus,
+		followStatus:       followStatus,
+		followingStatus:    followingStatus,
+		tweetsStatus:       tweetsStatus,
+		connectionsStatus:  connectionsStatus,
+		followLimit:        1000,
 	}
 
 	//Initializes concurrent workers
@@ -206,6 +219,8 @@ func main() {
 	go app.ProfileWorker()
 	go app.FollowWorker()
 	go app.FollowerWorker()
+	go app.FollowBackupWorker()
+	go app.FollowerBackupWorker()
 	go app.TweetsWorker()
 	go app.ConnectionsWorker()
 	go app.FollowerQueue()
