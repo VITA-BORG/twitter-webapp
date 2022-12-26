@@ -7,9 +7,9 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows", "sessions", "admins"}
+var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows", "sessions", "admins", "follow_requests", "follower_requests"}
 
-//DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
+// DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
 func DeleteTables(conn *pgxpool.Pool) error {
 	var statement string
 	for _, table := range tables {
@@ -28,7 +28,7 @@ func DeleteTables(conn *pgxpool.Pool) error {
 	return nil
 }
 
-//CreateTables creates all tables in the database.  Only use when testing or when you want to start from scratch.
+// CreateTables creates all tables in the database.  Only use when testing or when you want to start from scratch.
 func CreateTables(conn *pgxpool.Pool) error {
 
 	statement := "CREATE TYPE gender AS ENUM ('M', 'F', 'X')"
@@ -172,6 +172,28 @@ func CreateTables(conn *pgxpool.Pool) error {
 		token text primary key,
 		data bytea NOT NULL,
 		expiry timestamptz NOT NULL
+		)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	statement = `create table follow_requests(
+		id serial primary key,
+		user_id bigint,
+		username varchar(256),
+		scrape_connections boolean
+		)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
+
+	statement = `create table follower_requests(
+		id serial primary key,
+		user_id bigint,
+		username varchar(256),
+		scrape_connections boolean
 		)`
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {

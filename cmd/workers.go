@@ -7,8 +7,8 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
-//ProfileWorker is the worker that scrapes the twitter profile of a user and stores it in the database concurrently.
-//Then sends the user id to the follower or following channel if it falls below the limit
+// ProfileWorker is the worker that scrapes the twitter profile of a user and stores it in the database concurrently.
+// Then sends the user id to the follower or following channel if it falls below the limit
 func (app *application) ProfileWorker() {
 	//reads from the profile channel until it is closed
 	for curr := range app.profileChan {
@@ -129,13 +129,16 @@ func (app *application) ProfileWorker() {
 			app.tweetsChan <- curr
 		}
 
+		//convert simplifiedUser to SimpleRequest
+		simpleRequest := simpleUsertoSimpleRequest(curr)
+
 		//checks if user followers exceeds limit, if so, it does not scrape the followers
 		if user.Followers > app.followLimit {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to followers channel", user.Handle)
-			app.followerChan <- curr
+			app.followerChan <- simpleRequest
 		}
 
 		//checks if user following exceeds limit, if so, it does not scrape the following
@@ -144,7 +147,7 @@ func (app *application) ProfileWorker() {
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to following channel", user.Handle)
-			app.followChan <- curr
+			app.followChan <- simpleRequest
 		}
 
 		app.profileStatus = "idle"
@@ -154,7 +157,7 @@ func (app *application) ProfileWorker() {
 	app.infoLog.Println("Profile Worker finished")
 }
 
-//TweetsWorker is the worker that scrapes the tweets of a user and stores them in the database concurrently
+// TweetsWorker is the worker that scrapes the tweets of a user and stores them in the database concurrently
 func (app *application) TweetsWorker() {
 	//reads from the tweets channel until it is closed
 	for user := range app.tweetsChan {
@@ -198,13 +201,13 @@ func (app *application) TweetsWorker() {
 	app.infoLog.Println("Tweets Worker finished")
 }
 
-//Follow Worker is the worker that scrapes the followings of a user and stores them in the database concurrently.
+// Follow Worker is the worker that scrapes the followings of a user and stores them in the database concurrently.
 func (app *application) FollowWorker() {
 	//reads from the follow channel until it is closed
 	for user := range app.followChan {
 		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		app.infoLog.Println("Scraping followings for user:", user.ID)
+		app.infoLog.Println("Scraping followings for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
 
@@ -213,7 +216,7 @@ func (app *application) FollowWorker() {
 			upstream: upstreamChan,
 		}
 		//sends request for follows to the follow queue channel
-		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.infoLog.Println("Sending request for follows for user:", user.UID)
 		app.followQueue <- request
 		// //waits for the response from the follow queue channel
 		app.infoLog.Printf("Waiting for follow response for user: %s", user.Username)
@@ -251,13 +254,13 @@ func (app *application) FollowWorker() {
 	app.infoLog.Println("Followings Worker finished")
 }
 
-//Follower Worker is the worker that scrapes the followers of a user and stores them in the database concurrently.
+// Follower Worker is the worker that scrapes the followers of a user and stores them in the database concurrently.
 func (app *application) FollowerWorker() {
 	//reads from the follower channel until it is closed
 	for user := range app.followerChan {
 		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		app.infoLog.Println("Scraping followers for user:", user.ID)
+		app.infoLog.Println("Scraping followers for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
 
@@ -267,7 +270,7 @@ func (app *application) FollowerWorker() {
 		}
 
 		//sends request for followers to the follower queue
-		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.infoLog.Println("Sending request for follows for user:", user.UID)
 		app.followerQueue <- request
 		//waits for the response from the follower queue
 		app.infoLog.Printf("Waiting for follower response for user: %s", user.Username)
@@ -285,12 +288,6 @@ func (app *application) FollowerWorker() {
 			continue
 		}
 
-		// app.infoLog.Printf("FOLLOWER WORKER: Printing out all followers for user: %s\n", user.Username)
-		// //print all the followers
-		// for _, follower := range followers {
-		// 	app.infoLog.Printf("Follower: %s | Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
-		// }
-
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
 			follows: followers,
@@ -304,23 +301,23 @@ func (app *application) FollowerWorker() {
 	app.infoLog.Println("Follower Worker finished")
 }
 
-//Connections Worker is the worker that scrapes connections.  It acts as a queue for both the Follower Worker and Following worker in order to avoid rate limiting
+// Connections Worker is the worker that scrapes connections.  It acts as a queue for both the Follower Worker and Following worker in order to avoid rate limiting
 func (app *application) ConnectionsWorker() {
 
 	for request := range app.connectionsChan {
 
-		var currentUser *simplifiedUser
+		var currentUser *models.SimpleRequest
 
 		for _, user := range request.follows {
 			//if the slice of follows is of followings of a user, that means the user is the followee, then that means the followerID and followerUsername is of the the other users.
 			if request.users == "followings" {
-				currentUser = &simplifiedUser{
-					ID:       user.FolloweeID,
+				currentUser = &models.SimpleRequest{
+					UID:      user.FolloweeID,
 					Username: user.FolloweeUsername,
 				}
 			} else if request.users == "followers" {
-				currentUser = &simplifiedUser{
-					ID:       user.FollowerID,
+				currentUser = &models.SimpleRequest{
+					UID:      user.FollowerID,
 					Username: user.FollowerUsername,
 				}
 			} else {
@@ -351,8 +348,6 @@ func (app *application) ConnectionsWorker() {
 				close(followerChan)
 				app.infoLog.Printf("%d followers recieved for user: %s", len(followers), currentUser.Username)
 			}
-
-			// TODO: Error with following scrape, always scraping the same person
 
 			app.infoLog.Println("Sending request for followings for user:", currentUser.Username)
 			if currUser.Following < app.followLimit {
@@ -392,7 +387,7 @@ func (app *application) ConnectionsWorker() {
 
 }
 
-//FollowerQueue is a queue that reads from the follower channel for request structs which contain the channel where a slice of pointers to models.follow structs are returned.
+// FollowerQueue is a queue that reads from the follower channel for request structs which contain the channel where a slice of pointers to models.follow structs are returned.
 func (app *application) FollowerQueue() {
 	//reads from follower request channel and scrapes the requests
 	for currRequest := range app.followerQueue {
@@ -413,7 +408,7 @@ func (app *application) FollowerQueue() {
 	}
 }
 
-//FollowingQueue is a queue that reads from the following channel for request structs which contain the channel where a slice of pointers to models.folow structs are returned.
+// FollowingQueue is a queue that reads from the following channel for request structs which contain the channel where a slice of pointers to models.folow structs are returned.
 func (app *application) FollowingQueue() {
 	//reads from following request channel and scrapes the requests
 	for currRequest := range app.followQueue {
@@ -431,5 +426,29 @@ func (app *application) FollowingQueue() {
 		//sleeps for a minute to avoid rate limiting
 		time.Sleep(time.Minute)
 
+	}
+}
+
+func (app *application) FollowBackupWorker() {
+	//reads from the follow backup channel and inserts the follow into the database
+
+	for request := range app.followBackupChan {
+		if request.remove {
+
+		} else {
+			models.InsertSimpleRequest(app.connection, request.request, "follow_requests")
+		}
+	}
+
+}
+
+func (app *application) FollowerBackupWorker() {
+	//reads from the following backup channel and inserts the following into the database
+	for request := range app.followBackupChan {
+		if request.remove {
+
+		} else {
+			models.InsertSimpleRequest(app.connection, request.request, "follow_requests")
+		}
 	}
 }
