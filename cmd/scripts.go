@@ -155,19 +155,19 @@ func guessGender(bio string) *string {
 	var gender *string
 
 	lowered := strings.ToLower(bio)
-	matched, _ := regexp.MatchString(`( they/them)`, lowered)
+	matched, _ := regexp.MatchString(`they/them`, lowered)
 	if matched {
 		x := "X"
 		gender = &x
 		return gender
 	}
-	matched, _ = regexp.MatchString(`( she/her)?( she ?)?( her ?)?`, lowered)
+	matched, _ = regexp.MatchString(`she/her`, lowered)
 	if matched {
 		f := "F"
 		gender = &f
 		return gender
 	}
-	matched, _ = regexp.MatchString(`( he/him)?( he ?)?( him ?)?`, lowered)
+	matched, _ = regexp.MatchString(`he/him`, lowered)
 	if matched {
 		m := "M"
 		gender = &m
@@ -591,13 +591,13 @@ func simpleRequstToSimpleUser(request *models.SimpleRequest) *simplifiedUser {
 	}
 }
 
-func (app *application) populateFollowQueue(users []*simplifiedUser) {
+func (app *application) populateFollowQueue(users []*models.SimpleRequest) {
 	for _, user := range users {
 		app.followChan <- user
 	}
 }
 
-func (app *application) populateFollowerQueue(users []*simplifiedUser) {
+func (app *application) populateFollowerQueue(users []*models.SimpleRequest) {
 	for _, user := range users {
 		app.followerChan <- user
 	}

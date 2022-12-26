@@ -1,4 +1,4 @@
-//TODO: getFollows and getFollowers can be unified into a single function
+// TODO: getFollows and getFollowers can be unified into a single function
 package main
 
 import (
@@ -13,7 +13,7 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
-//singleFollow is the follower object that is expected from the twitter api (all strings)
+// singleFollow is the follower object that is expected from the twitter api (all strings)
 type singleFollow struct {
 	ID        string `json:"id"`
 	CreatedAt string `json:"created_at"`
@@ -21,20 +21,20 @@ type singleFollow struct {
 	Username  string `json:"username"`
 }
 
-//meta is the expected "meta" object in the response from the twitter api
+// meta is the expected "meta" object in the response from the twitter api
 type meta struct {
 	NextToken     string `json:"next_token"`
 	PreviousToken string `json:"previous_token"`
 	ResultCount   int    `json:"result_count"`
 }
 
-//followerResponse is the struct of the expected response from the twitter api
+// followerResponse is the struct of the expected response from the twitter api
 type followerResponse struct {
 	Data []singleFollow `json:"data"`
 	Meta meta           `json:"meta"`
 }
 
-//getURL returns the twitter v2 api url for a given endpoint
+// getURL returns the twitter v2 api url for a given endpoint
 func getFollowURL(uid int64, followStatus string, pageToken string) string {
 	url := fmt.Sprintf("https://api.twitter.com/2/users/%d/%s?user.fields=created_at&max_results=1000", uid, followStatus)
 	if pageToken != "" {
@@ -43,8 +43,8 @@ func getFollowURL(uid int64, followStatus string, pageToken string) string {
 	return url
 }
 
-//getResponse returns the response from a given url.  This is used in tandem with getURL to get the response from the twitter api
-//This also adds important headers to the request
+// getResponse returns the response from a given url.  This is used in tandem with getURL to get the response from the twitter api
+// This also adds important headers to the request
 func (app *application) getResponse(url string, bearer string) (*http.Response, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -63,14 +63,14 @@ func (app *application) getResponse(url string, bearer string) (*http.Response, 
 
 }
 
-//getFollowers scrapes a user's profile and returns a slice of models.Follow structs of users that follow a user
-func (app *application) getFollowers(user *simplifiedUser) ([]*models.Follow, error) {
+// getFollowers scrapes a user's profile and returns a slice of models.Follow structs of users that follow a user
+func (app *application) getFollowers(user *models.SimpleRequest) ([]*models.Follow, error) {
 	var followers []*models.Follow
 	var pageToken string
 	currTime := time.Now()
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
-		url := getFollowURL(user.ID, "followers", pageToken)
+		url := getFollowURL(user.UID, "followers", pageToken)
 		resp, err := app.getResponse(url, app.bearerToken)
 		if err != nil {
 			app.errorLog.Println(err)
@@ -123,7 +123,7 @@ func (app *application) getFollowers(user *simplifiedUser) ([]*models.Follow, er
 					FollowerID:       followerID,
 					FollowerUsername: follower.Username,
 					CreatedAt:        createdAt,
-					FolloweeID:       user.ID,
+					FolloweeID:       user.UID,
 					FolloweeUsername: user.Username,
 					CollectedAt:      currTime,
 				})
@@ -137,8 +137,8 @@ func (app *application) getFollowers(user *simplifiedUser) ([]*models.Follow, er
 			//sleep 60 seconds to avoid rate limiting
 			time.Sleep(60 * time.Second)
 		} else {
-			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.ID, resp.StatusCode)
-			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.ID, resp.StatusCode)
+			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.UID, resp.StatusCode)
+			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.UID, resp.StatusCode)
 		}
 
 	}
@@ -146,14 +146,14 @@ func (app *application) getFollowers(user *simplifiedUser) ([]*models.Follow, er
 	return followers, nil
 }
 
-//getFollows scrapes a user's profile and returns a slice of models.Follow structs of users that a user follows
-func (app *application) getFollows(user *simplifiedUser) ([]*models.Follow, error) {
+// getFollows scrapes a user's profile and returns a slice of models.Follow structs of users that a user follows
+func (app *application) getFollows(user *models.SimpleRequest) ([]*models.Follow, error) {
 	var follows []*models.Follow
 	var pageToken string
 	currTime := time.Now()
 	//get the first page of followers, then continues going as long as there is a next page
 	for {
-		url := getFollowURL(user.ID, "following", pageToken)
+		url := getFollowURL(user.UID, "following", pageToken)
 		resp, err := app.getResponse(url, app.bearerToken2)
 		if err != nil {
 			app.errorLog.Println(err)
@@ -203,7 +203,7 @@ func (app *application) getFollows(user *simplifiedUser) ([]*models.Follow, erro
 				}
 
 				follows = append(follows, &models.Follow{
-					FollowerID:       user.ID,
+					FollowerID:       user.UID,
 					FollowerUsername: user.Username,
 					CreatedAt:        createdAt,
 					FolloweeID:       followerID,
@@ -220,8 +220,8 @@ func (app *application) getFollows(user *simplifiedUser) ([]*models.Follow, erro
 			//sleep 60 seconds to avoid rate limiting
 			time.Sleep(60 * time.Second)
 		} else {
-			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.ID, resp.StatusCode)
-			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.ID, resp.StatusCode)
+			app.errorLog.Printf("error getting followers for user %d.  Status code: %d\n", user.UID, resp.StatusCode)
+			return nil, fmt.Errorf("error getting followers for user %d.  Status code: %d", user.UID, resp.StatusCode)
 		}
 
 	}

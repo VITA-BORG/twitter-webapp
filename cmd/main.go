@@ -23,7 +23,7 @@ import (
 )
 
 type followRequest struct {
-	User     *simplifiedUser
+	User     *models.SimpleRequest
 	upstream chan []*models.Follow
 }
 type connectionsRequest struct {
@@ -76,8 +76,8 @@ type application struct {
 	followerClient http.Client
 	//expects simplifiedUser struct
 	profileChan     chan *simplifiedUser
-	followChan      chan *simplifiedUser
-	followerChan    chan *simplifiedUser
+	followChan      chan *models.SimpleRequest
+	followerChan    chan *models.SimpleRequest
 	tweetsChan      chan *simplifiedUser
 	connectionsChan chan connectionsRequest
 	followQueue     chan *followRequest
@@ -151,8 +151,8 @@ func main() {
 	//Initializing channels
 	infoLog.Println("Initializing channels...")
 	profileChan := make(chan *simplifiedUser, 100)
-	followChan := make(chan *simplifiedUser, 3000)
-	followerChan := make(chan *simplifiedUser, 3000)
+	followChan := make(chan *models.SimpleRequest, 3000)
+	followerChan := make(chan *models.SimpleRequest, 3000)
 	tweetsChan := make(chan *simplifiedUser, 100)
 	connectionsChan := make(chan connectionsRequest, 100)
 	followQueue := make(chan *followRequest, 1000)

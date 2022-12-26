@@ -129,13 +129,16 @@ func (app *application) ProfileWorker() {
 			app.tweetsChan <- curr
 		}
 
+		//convert simplifiedUser to SimpleRequest
+		simpleRequest := simpleUsertoSimpleRequest(curr)
+
 		//checks if user followers exceeds limit, if so, it does not scrape the followers
 		if user.Followers > app.followLimit {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to followers channel", user.Handle)
-			app.followerChan <- curr
+			app.followerChan <- simpleRequest
 		}
 
 		//checks if user following exceeds limit, if so, it does not scrape the following
@@ -144,7 +147,7 @@ func (app *application) ProfileWorker() {
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to following channel", user.Handle)
-			app.followChan <- curr
+			app.followChan <- simpleRequest
 		}
 
 		app.profileStatus = "idle"
@@ -204,7 +207,7 @@ func (app *application) FollowWorker() {
 	for user := range app.followChan {
 		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		app.infoLog.Println("Scraping followings for user:", user.ID)
+		app.infoLog.Println("Scraping followings for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
 
@@ -213,7 +216,7 @@ func (app *application) FollowWorker() {
 			upstream: upstreamChan,
 		}
 		//sends request for follows to the follow queue channel
-		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.infoLog.Println("Sending request for follows for user:", user.UID)
 		app.followQueue <- request
 		// //waits for the response from the follow queue channel
 		app.infoLog.Printf("Waiting for follow response for user: %s", user.Username)
@@ -257,7 +260,7 @@ func (app *application) FollowerWorker() {
 	for user := range app.followerChan {
 		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
 
-		app.infoLog.Println("Scraping followers for user:", user.ID)
+		app.infoLog.Println("Scraping followers for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
 
@@ -267,7 +270,7 @@ func (app *application) FollowerWorker() {
 		}
 
 		//sends request for followers to the follower queue
-		app.infoLog.Println("Sending request for follows for user:", user.ID)
+		app.infoLog.Println("Sending request for follows for user:", user.UID)
 		app.followerQueue <- request
 		//waits for the response from the follower queue
 		app.infoLog.Printf("Waiting for follower response for user: %s", user.Username)
@@ -309,18 +312,18 @@ func (app *application) ConnectionsWorker() {
 
 	for request := range app.connectionsChan {
 
-		var currentUser *simplifiedUser
+		var currentUser *models.SimpleRequest
 
 		for _, user := range request.follows {
 			//if the slice of follows is of followings of a user, that means the user is the followee, then that means the followerID and followerUsername is of the the other users.
 			if request.users == "followings" {
-				currentUser = &simplifiedUser{
-					ID:       user.FolloweeID,
+				currentUser = &models.SimpleRequest{
+					UID:      user.FolloweeID,
 					Username: user.FolloweeUsername,
 				}
 			} else if request.users == "followers" {
-				currentUser = &simplifiedUser{
-					ID:       user.FollowerID,
+				currentUser = &models.SimpleRequest{
+					UID:      user.FollowerID,
 					Username: user.FollowerUsername,
 				}
 			} else {
