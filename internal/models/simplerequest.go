@@ -52,3 +52,10 @@ func GetSimpleRequests(conn *pgxpool.Pool, follow_status string) ([]SimpleReques
 	}
 	return requests, nil
 }
+
+// DeleteSimpleRequest deletes a SimpleRequest object from the database.
+func DeleteSimpleRequest(conn *pgxpool.Pool, request *SimpleRequest, table string) error {
+	statement := "DELETE FROM " + table + " WHERE id = $1"
+	_, err := conn.Exec(context.Background(), statement, request.ID)
+	return err
+}

@@ -200,6 +200,13 @@ func CreateTables(conn *pgxpool.Pool) error {
 		return err
 	}
 
+	statement = `create table connection_requests(
+		id serial primary key,
+		user_id bigint,
+		username varchar(256),
+		follows_or_followers varchar(256),
+		)`
+
 	statement = "CREATE INDEX sessions_expiry ON sessions (expiry)"
 	_, err = conn.Exec(context.Background(), statement)
 	if err != nil {
