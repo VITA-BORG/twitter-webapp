@@ -602,3 +602,31 @@ func (app *application) populateFollowerQueue(users []*models.SimpleRequest) {
 		app.followerChan <- user
 	}
 }
+
+//populateConnectionRequest takes a models.ConnectionRequest, queries the proper followers/followings and creates a connectionRequest struct
+func (app *application) populateConnectionRequest(request *models.ConnectionRequest) *connectionsRequest {
+	var follows []*models.Follow
+	var err error
+	populatedRequest := &connectionsRequest{
+		users: request.FollowsOrFollowers,
+	}
+	if request.FollowsOrFollowers == "follows" {
+		//query for follows
+		follows, err = models.GetFollows(app.connection, request.UID)
+		if err != nil {
+			app.errorLog.Println("Error: " + err.Error())
+			return nil
+		}
+	} else if request.FollowsOrFollowers == "followers" {
+		//query for followers
+		follows, err = models.GetFollowers(app.connection, request.UID)
+		if err != nil {
+			app.errorLog.Println("Error: " + err.Error())
+			return nil
+		}
+	}
+
+	populatedRequest.follows = follows
+
+	return populatedRequest
+}
