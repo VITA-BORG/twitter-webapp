@@ -142,7 +142,6 @@ func (app *application) getFollowers(user *models.SimpleRequest) ([]*models.Foll
 		}
 
 	}
-	app.infoLog.Printf("%d followers found for user: %s\n", len(followers), user.Username)
 	return followers, nil
 }
 
@@ -225,6 +224,5 @@ func (app *application) getFollows(user *models.SimpleRequest) ([]*models.Follow
 		}
 
 	}
-	app.infoLog.Printf("%d follows found for user: %s\n", len(follows), user.Username)
 	return follows, nil
 }

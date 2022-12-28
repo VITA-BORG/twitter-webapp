@@ -130,20 +130,21 @@ func (app *application) ProfileWorker() {
 		}
 
 		//convert simplifiedUser to SimpleRequest
-		simpleRequest := simpleUsertoSimpleRequest(curr)
+		simpleFollowRequest := simpleUsertoSimpleRequest(curr)
+		simpleFollowerRequest := simpleUsertoSimpleRequest(curr)
 
-		backupRequest := &backupRequest{
-			request: simpleRequest,
-			remove:  false,
-		}
 		//checks if user followers exceeds limit, if so, it does not scrape the followers
 		if user.Followers > app.followLimit {
 			app.infoLog.Println("User has too many followers, not scraping followers")
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to followers channel and backup channel", user.Handle)
-			app.followerBackupChan <- backupRequest
-			app.followerChan <- simpleRequest
+			simpleFollowerRequest.ID, err = models.InsertSimpleRequest(app.connection, simpleFollowerRequest, "follower_requests")
+			if err != nil {
+				app.errorLog.Println("Error backing up simple request")
+				app.errorLog.Println(err)
+			}
+			app.followerChan <- simpleFollowerRequest
 		}
 
 		//checks if user following exceeds limit, if so, it does not scrape the following
@@ -152,8 +153,12 @@ func (app *application) ProfileWorker() {
 			app.profileStatus = "idle"
 		} else if curr.ScrapeConnections {
 			app.infoLog.Printf("Sending %s to following channel", user.Handle)
-			app.followBackupChan <- backupRequest
-			app.followChan <- simpleRequest
+			simpleFollowRequest.ID, err = models.InsertSimpleRequest(app.connection, simpleFollowRequest, "follow_requests")
+			if err != nil {
+				app.errorLog.Println("Error backing up simple request")
+				app.errorLog.Println(err)
+			}
+			app.followChan <- simpleFollowRequest
 		}
 
 		app.profileStatus = "idle"
@@ -234,7 +239,6 @@ func (app *application) FollowWorker() {
 		}
 
 		app.infoLog.Printf("%d follows recieved for user: %s", len(follows), user.Username)
-		app.infoLog.Printf("Updating Follows for user: %s", user.Username)
 
 		err := app.updateFollows(follows)
 		if err != nil {
@@ -242,12 +246,19 @@ func (app *application) FollowWorker() {
 			continue
 		}
 
-		backupRequest := &backupRequest{
-			request: user,
-			remove:  true,
+		//removes backup request from database
+		models.DeleteSimpleRequest(app.connection, user, "follow_requests")
+
+		connectionRequestBackup := &models.ConnectionRequest{
+			UID:                user.UID,
+			Username:           user.Username,
+			FollowsOrFollowers: "follows",
 		}
 
-		app.followBackupChan <- backupRequest
+		BackupID, err := models.InsertConnectionRequest(app.connection, connectionRequestBackup)
+		if err != nil {
+			app.errorLog.Println("Error backing up connection request:", err)
+		}
 
 		// app.infoLog.Printf("FOLLOW WORKER: Printing all Follows for user: %s\n", user.Username)
 		// for _, follow := range follows {
@@ -256,6 +267,7 @@ func (app *application) FollowWorker() {
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
+			ID:      BackupID,
 			follows: follows,
 			users:   "followings",
 		}
@@ -294,22 +306,29 @@ func (app *application) FollowerWorker() {
 			continue
 		}
 		app.infoLog.Printf("%d followers recieved for user: %s", len(followers), user.Username)
-		app.infoLog.Printf("Updating Followers for user: %s", user.Username)
 		err := app.updateFollows(followers)
 		if err != nil {
 			app.errorLog.Println("Error updating followers:", err)
 			continue
 		}
 
-		backupRequest := &backupRequest{
-			request: user,
-			remove:  true,
+		//removes backup request from database
+		models.DeleteSimpleRequest(app.connection, user, "follower_requests")
+
+		connectionRequestBackup := &models.ConnectionRequest{
+			UID:                user.UID,
+			Username:           user.Username,
+			FollowsOrFollowers: "followers",
 		}
 
-		app.followBackupChan <- backupRequest
+		BackupID, err := models.InsertConnectionRequest(app.connection, connectionRequestBackup)
+		if err != nil {
+			app.errorLog.Println("Error inserting connection request backup:", err)
+		}
 
 		app.infoLog.Println("Sending request to connections worker for user:", user.Username)
 		app.connectionsChan <- connectionsRequest{
+			ID:      BackupID,
 			follows: followers,
 			users:   "followers",
 		}
@@ -403,6 +422,11 @@ func (app *application) ConnectionsWorker() {
 
 		}
 
+		err := models.DeleteConnectionRequest(app.connection, request.ID)
+		if err != nil {
+			app.errorLog.Println("Error deleting connection request:", err)
+		}
+
 	}
 
 }
@@ -411,8 +435,6 @@ func (app *application) ConnectionsWorker() {
 func (app *application) FollowerQueue() {
 	//reads from follower request channel and scrapes the requests
 	for currRequest := range app.followerQueue {
-
-		app.infoLog.Println("Recieved request for followers for user:", currRequest.User.Username)
 
 		followers, err := app.getFollowers(currRequest.User)
 		if err != nil {
@@ -433,8 +455,6 @@ func (app *application) FollowingQueue() {
 	//reads from following request channel and scrapes the requests
 	for currRequest := range app.followQueue {
 
-		app.infoLog.Println("Recieved request for followings for user:", currRequest.User.Username)
-
 		followings, err := app.getFollows(currRequest.User)
 		if err != nil {
 			app.errorLog.Println("Error getting followings for: ", currRequest.User.Username)
@@ -446,29 +466,5 @@ func (app *application) FollowingQueue() {
 		//sleeps for a minute to avoid rate limiting
 		time.Sleep(time.Minute)
 
-	}
-}
-
-func (app *application) FollowBackupWorker() {
-	//reads from the follow backup channel and inserts the follow into the database
-
-	for request := range app.followBackupChan {
-		if request.remove {
-			models.DeleteSimpleRequest(app.connection, request.request, "follow_requests")
-		} else {
-			models.InsertSimpleRequest(app.connection, request.request, "follow_requests")
-		}
-	}
-
-}
-
-func (app *application) FollowerBackupWorker() {
-	//reads from the following backup channel and inserts the following into the database
-	for request := range app.followBackupChan {
-		if request.remove {
-			models.DeleteSimpleRequest(app.connection, request.request, "follower_requests")
-		} else {
-			models.InsertSimpleRequest(app.connection, request.request, "follower_requests")
-		}
 	}
 }

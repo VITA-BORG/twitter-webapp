@@ -46,8 +46,6 @@ func (app *application) scrapeUser(handle string) (*models.User, error) {
 	}
 	currTime := time.Now()
 
-	app.infoLog.Printf("user %s successfully scraped", handle)
-
 	return &models.User{
 		ID:          uid,
 		ProfileName: profile.Name,
@@ -603,7 +601,7 @@ func (app *application) populateFollowerQueue(users []*models.SimpleRequest) {
 	}
 }
 
-//populateConnectionRequest takes a models.ConnectionRequest, queries the proper followers/followings and creates a connectionRequest struct
+// populateConnectionRequest takes a models.ConnectionRequest, queries the proper followers/followings and creates a connectionRequest struct
 func (app *application) populateConnectionRequest(request *models.ConnectionRequest) *connectionsRequest {
 	var follows []*models.Follow
 	var err error

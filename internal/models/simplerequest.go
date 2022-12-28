@@ -14,12 +14,15 @@ type SimpleRequest struct {
 	Scrape_connections bool   `json:"scrape_connections"`
 }
 
-// InsertSimpleRequest inserts a SimpleRequest object into the database.  No checking.
-func InsertSimpleRequest(conn *pgxpool.Pool, request *SimpleRequest, table string) error {
+// InsertSimpleRequest inserts a SimpleRequest object into the database.  No checking. Returns the ID of the inserted row.
+func InsertSimpleRequest(conn *pgxpool.Pool, request *SimpleRequest, table string) (int64, error) {
 
-	statement := "INSERT INTO " + table + "(id, username, scrape_connections) VALUES($1, $2, $3)"
-	_, err := conn.Exec(context.Background(), statement, request.UID, request.Username, request.Scrape_connections)
-	return err
+	statement := "INSERT INTO " + table + "(user_id, username, scrape_connections) VALUES($1, $2, $3)"
+	tag, err := conn.Exec(context.Background(), statement, request.UID, request.Username, request.Scrape_connections)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
 }
 
 // GetSimpleRequests gets all SimpleRequest objects from the database.

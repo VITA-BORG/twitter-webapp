@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows", "sessions", "admins", "follow_requests", "follower_requests"}
+var tables = []string{"users", "tweets", "schools", "students", "replies", "mentions", "bio_tags", "hashtags", "follows", "sessions", "admins", "follow_requests", "follower_requests", "connection_requests"}
 
 // DeleteTables drops all tables in the database.  Only use when testing or when you want to start from scratch.
 func DeleteTables(conn *pgxpool.Pool) error {
@@ -204,8 +204,12 @@ func CreateTables(conn *pgxpool.Pool) error {
 		id serial primary key,
 		user_id bigint,
 		username varchar(256),
-		follows_or_followers varchar(256),
+		follows_or_followers varchar(256)
 		)`
+	_, err = conn.Exec(context.Background(), statement)
+	if err != nil {
+		return err
+	}
 
 	statement = "CREATE INDEX sessions_expiry ON sessions (expiry)"
 	_, err = conn.Exec(context.Background(), statement)
