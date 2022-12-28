@@ -406,7 +406,9 @@ func (app *application) ConnectionsWorker() {
 			//if they are already in the database, the follow is added since both users are already in the database
 			for _, follower := range followers {
 				if models.UserIDExists(app.connection, follower.FollowerID) {
-					app.infoLog.Printf("Connection found. Follower: %s, Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
+					if app.debug {
+						app.infoLog.Printf("Connection found. Follower: %s, Followee: %s", follower.FollowerUsername, follower.FolloweeUsername)
+					}
 					models.InsertFollow(app.connection, follower)
 				}
 			}
