@@ -26,9 +26,9 @@ func InsertConnectionRequest(conn *pgxpool.Pool, request *ConnectionRequest) (in
 }
 
 // GetConnectionRequests gets all ConnectionRequest objects from the database.
-func GetConnectionRequests(conn *pgxpool.Pool) ([]ConnectionRequest, error) {
+func GetConnectionRequests(conn *pgxpool.Pool) ([]*ConnectionRequest, error) {
 
-	var requests []ConnectionRequest
+	var requests []*ConnectionRequest
 	statement := "SELECT * FROM connection_requests"
 	rows, err := conn.Query(context.Background(), statement)
 	if err != nil {
@@ -41,7 +41,7 @@ func GetConnectionRequests(conn *pgxpool.Pool) ([]ConnectionRequest, error) {
 		if err != nil {
 			return requests, err
 		}
-		requests = append(requests, request)
+		requests = append(requests, &request)
 	}
 	return requests, nil
 }

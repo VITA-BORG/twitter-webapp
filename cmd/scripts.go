@@ -606,9 +606,11 @@ func (app *application) populateConnectionRequest(request *models.ConnectionRequ
 	var follows []*models.Follow
 	var err error
 	populatedRequest := &connectionsRequest{
+		ID:    request.ID,
 		users: request.FollowsOrFollowers,
 	}
 	if request.FollowsOrFollowers == "follows" {
+		populatedRequest.users = "followings"
 		//query for follows
 		follows, err = models.GetFollows(app.connection, request.UID)
 		if err != nil {
@@ -616,6 +618,7 @@ func (app *application) populateConnectionRequest(request *models.ConnectionRequ
 			return nil
 		}
 	} else if request.FollowsOrFollowers == "followers" {
+		populatedRequest.users = "followers"
 		//query for followers
 		follows, err = models.GetFollowers(app.connection, request.UID)
 		if err != nil {
@@ -627,4 +630,49 @@ func (app *application) populateConnectionRequest(request *models.ConnectionRequ
 	populatedRequest.follows = follows
 
 	return populatedRequest
+}
+
+func (app *application) loadBackups() {
+	//Query database for all follower_requests
+	requests, err := models.GetSimpleRequests(app.connection, "followers")
+	if err != nil {
+		app.errorLog.Println("Error: " + err.Error())
+		return
+	}
+	//check if there are any requests
+	if len(requests) > 0 {
+		//populate the follower queue
+		app.populateFollowerQueue(requests)
+	}
+
+	//Query database for all follow_requests
+	requests, err = models.GetSimpleRequests(app.connection, "follows")
+	if err != nil {
+		app.errorLog.Println("Error: " + err.Error())
+		return
+	}
+	//check if there are any requests
+	if len(requests) > 0 {
+		//populate the follow queue
+		app.populateFollowQueue(requests)
+	}
+
+	//Query database for all connection_requests
+	connectionRequests, err := models.GetConnectionRequests(app.connection)
+	if err != nil {
+		app.errorLog.Println("Error: " + err.Error())
+		return
+	}
+	//check if there are any requests
+	if len(connectionRequests) == 0 {
+		app.infoLog.Printf("no connection requests found")
+		return
+	}
+
+	//populate the connection reqeusts
+	for _, request := range connectionRequests {
+		app.infoLog.Printf("Loading connection request: %v", request.ID)
+		app.connectionsChan <- *app.populateConnectionRequest(request)
+	}
+
 }

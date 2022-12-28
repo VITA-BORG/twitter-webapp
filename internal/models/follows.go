@@ -17,14 +17,14 @@ type Follow struct {
 	CollectedAt      time.Time `json:"collected_at"`
 }
 
-//InsertFollow inserts a Follow object into the database.  No checking.
+// InsertFollow inserts a Follow object into the database.  No checking.
 func InsertFollow(conn *pgxpool.Pool, follow *Follow) error {
 	statement := "INSERT INTO follows(follower_id, followee_id, created_at, collected_at) VALUES($1, $2, $3, $4)"
 	_, err := conn.Exec(context.Background(), statement, follow.FollowerID, follow.FolloweeID, follow.CreatedAt, follow.CollectedAt)
 	return err
 }
 
-//GetFollowers retrieves all followers of a user returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
+// GetFollowers retrieves all followers of a user returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
 func GetFollowers(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 	var follows []*Follow
 	var err error
@@ -40,12 +40,23 @@ func GetFollowers(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		follow.FollowerUsername, err = GetUsernameByID(conn, follow.FollowerID)
+		if err != nil {
+			return nil, err
+		}
+
+		follow.FolloweeUsername, err = GetUsernameByID(conn, follow.FolloweeID)
+		if err != nil {
+			return nil, err
+		}
+
 		follows = append(follows, &follow)
 	}
 	return follows, nil
 }
 
-//GetFollows retrieves all follows of a user and returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
+// GetFollows retrieves all follows of a user and returns a slice of pointers to Follow objects from the database if they exist.  Otherwise, it returns nil.
 func GetFollows(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 	var follows []*Follow
 	var err error
@@ -61,12 +72,23 @@ func GetFollows(conn *pgxpool.Pool, uid int64) ([]*Follow, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		follow.FollowerUsername, err = GetUsernameByID(conn, follow.FollowerID)
+		if err != nil {
+			return nil, err
+		}
+
+		follow.FolloweeUsername, err = GetUsernameByID(conn, follow.FolloweeID)
+		if err != nil {
+			return nil, err
+		}
+
 		follows = append(follows, &follow)
 	}
 	return follows, nil
 }
 
-//FollowExists checks if a follow exists in the database.  Returns true if it does.  Otherwise, it returns false.
+// FollowExists checks if a follow exists in the database.  Returns true if it does.  Otherwise, it returns false.
 func FollowExists(conn *pgxpool.Pool, follow *Follow) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM follows WHERE follower_id=$1 AND followee_id=$2)"
@@ -77,7 +99,7 @@ func FollowExists(conn *pgxpool.Pool, follow *Follow) bool {
 	return exists
 }
 
-//AddFollows takes a slice of pointers to Follow objects and adds them to the database if they do not already exist.
+// AddFollows takes a slice of pointers to Follow objects and adds them to the database if they do not already exist.
 func AddFollows(conn *pgxpool.Pool, follows []*Follow) error {
 	for _, follow := range follows {
 		if !FollowExists(conn, follow) {

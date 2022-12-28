@@ -26,7 +26,7 @@ func InsertSimpleRequest(conn *pgxpool.Pool, request *SimpleRequest, table strin
 }
 
 // GetSimpleRequests gets all SimpleRequest objects from the database.
-func GetSimpleRequests(conn *pgxpool.Pool, follow_status string) ([]SimpleRequest, error) {
+func GetSimpleRequests(conn *pgxpool.Pool, follow_status string) ([]*SimpleRequest, error) {
 
 	var table_name string
 
@@ -38,7 +38,7 @@ func GetSimpleRequests(conn *pgxpool.Pool, follow_status string) ([]SimpleReques
 		return nil, nil
 	}
 
-	var requests []SimpleRequest
+	var requests []*SimpleRequest
 	statement := "SELECT * FROM " + table_name
 	rows, err := conn.Query(context.Background(), statement)
 	if err != nil {
@@ -51,7 +51,7 @@ func GetSimpleRequests(conn *pgxpool.Pool, follow_status string) ([]SimpleReques
 		if err != nil {
 			return requests, err
 		}
-		requests = append(requests, request)
+		requests = append(requests, &request)
 	}
 	return requests, nil
 }

@@ -274,6 +274,8 @@ func main() {
 
 	}
 
+	app.infoLog.Println("Loading Backups...")
+	app.loadBackups()
 	app.infoLog.Printf("Starting server on %s...", *addr)
 	err = srv.ListenAndServe()
 	errLog.Fatal(err)
