@@ -29,14 +29,14 @@ type User struct {
 
 var Format string = "2006-01-02"
 
-//InsertUser inserts a User object into the database.  No checking.
+// InsertUser inserts a User object into the database.  No checking.
 func InsertUser(conn *pgxpool.Pool, user *User) error {
 	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at, is_participant) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"
 	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.IsParticipant)
 	return err
 }
 
-//GetUserByHandle returns a User object from the database if they exist.  Otherwise, it returns nil.
+// GetUserByHandle returns a User object from the database if they exist.  Otherwise, it returns nil.
 func GetUserByHandle(conn *pgxpool.Pool, handle string) (*User, error) {
 	var user User
 	var err error
@@ -45,7 +45,7 @@ func GetUserByHandle(conn *pgxpool.Pool, handle string) (*User, error) {
 	return &user, err
 }
 
-//GetUserByID returns a User object from the database if they exist.  Otherwise, it returns nil.
+// GetUserByID returns a User object from the database if they exist.  Otherwise, it returns nil.
 func GetUserByID(conn *pgxpool.Pool, ID int64) (*User, error) {
 	var user User
 	var err error
@@ -54,7 +54,7 @@ func GetUserByID(conn *pgxpool.Pool, ID int64) (*User, error) {
 	return &user, err
 }
 
-//UserExists checks if a user exists in the database.
+// UserExists checks if a user exists in the database.
 func UserExists(conn *pgxpool.Pool, handle string) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM users WHERE handle ILIKE $1)"
@@ -65,7 +65,7 @@ func UserExists(conn *pgxpool.Pool, handle string) bool {
 	return exists
 }
 
-//UserIDExists checks if a user ID exists in the database.
+// UserIDExists checks if a user ID exists in the database.
 func UserIDExists(conn *pgxpool.Pool, ID int64) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)"
@@ -76,7 +76,15 @@ func UserIDExists(conn *pgxpool.Pool, ID int64) bool {
 	return exists
 }
 
-//GetUserIDByHandle returns the user's ID given their handle
+func GetUsernameByID(conn *pgxpool.Pool, ID int64) (string, error) {
+	var username string
+	var err error
+	statement := "SELECT handle FROM users WHERE id=$1"
+	err = conn.QueryRow(context.Background(), statement, ID).Scan(&username)
+	return username, err
+}
+
+// GetUserIDByHandle returns the user's ID given their handle
 func GetUserIDByHandle(conn *pgxpool.Pool, handle string) (int64, error) {
 	var id int64
 	var err error
@@ -88,7 +96,7 @@ func GetUserIDByHandle(conn *pgxpool.Pool, handle string) (int64, error) {
 	return id, nil
 }
 
-//UpdateUser updates the user's record given a user struct
+// UpdateUser updates the user's record given a user struct
 func UpdateUser(conn *pgxpool.Pool, user *User) error {
 	statement := "UPDATE users SET profile_name=$1, handle=$2, gender=$3, is_person=$4, joined=$5, bio=$6, location=$7, verified=$8, avatar=$9, tweets=$10, likes=$11, media=$12, following=$13, followers=$14, collected_at=$15, is_participant=$16 WHERE id=$17"
 	_, err := conn.Exec(context.Background(), statement, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.IsParticipant, user.ID)
@@ -96,14 +104,14 @@ func UpdateUser(conn *pgxpool.Pool, user *User) error {
 
 }
 
-//UpdateUserHandle updates the user's handle given a user struct
+// UpdateUserHandle updates the user's handle given a user struct
 func UpdateUserHandle(conn *pgxpool.Pool, user *User) error {
 	statement := "UPDATE users SET handle=$1 WHERE id=$2"
 	_, err := conn.Exec(context.Background(), statement, user.Handle, user.ID)
 	return err
 }
 
-//GetAllUsernames returns a list of all usernames in the database.
+// GetAllUsernames returns a list of all usernames in the database.
 func GetAllUsernames(conn *pgxpool.Pool) ([]string, error) {
 	var usernames []string
 	var err error
@@ -124,7 +132,7 @@ func GetAllUsernames(conn *pgxpool.Pool) ([]string, error) {
 	return usernames, nil
 }
 
-//GetAllParticipants returns a list of all participants in the database.
+// GetAllParticipants returns a list of all participants in the database.
 func GetAllParticipants(conn *pgxpool.Pool) ([]User, error) {
 	var users []User
 	var err error
@@ -145,7 +153,7 @@ func GetAllParticipants(conn *pgxpool.Pool) ([]User, error) {
 	return users, nil
 }
 
-//GetUserCount returns the number of users in the database.
+// GetUserCount returns the number of users in the database.
 func GetUserCount(conn *pgxpool.Pool) (int, error) {
 	var count int
 	var err error
