@@ -11,12 +11,13 @@ import (
 	"github.com/rainbowriverrr/F3Ytwitter/internal/models"
 )
 
-//Contains the data that will be passed to the templates.
+// Contains the data that will be passed to the templates.
 type statusData struct {
-	FollowerStatus  string
-	FollowingStatus string
-	ProfileStatus   string
-	NumberOfUsers   int
+	FollowerStatus    string
+	FollowingStatus   string
+	ProfileStatus     string
+	ConnectionsStatus string
+	NumberOfUsers     int
 }
 
 type usersPage struct {
@@ -69,8 +70,8 @@ func currDateFormatter() string {
 	return time.Now().Format("January 1 2006 at 15:04")
 }
 
-//newTemplateCache is a helper function that loads all HTML templates into a template cache, and returns a map of template names to template.
-//This will make it easy to render templates in the future, since the templates will be in the cache already and you will not have to parse them for every request.
+// newTemplateCache is a helper function that loads all HTML templates into a template cache, and returns a map of template names to template.
+// This will make it easy to render templates in the future, since the templates will be in the cache already and you will not have to parse them for every request.
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 
@@ -108,7 +109,7 @@ func newTemplateCache() (map[string]*template.Template, error) {
 	return cache, nil
 }
 
-//renderTemplate is a helper function that renders a template with the given name and data.
+// renderTemplate is a helper function that renders a template with the given name and data.
 func (app *application) renderTemplate(w http.ResponseWriter, status int, page string, data *templateData) {
 	//Retrieves template from cache
 	tmpl, ok := app.templateCache[page]
@@ -131,18 +132,19 @@ func (app *application) renderTemplate(w http.ResponseWriter, status int, page s
 
 }
 
-//populateWorkerStatus is a helper function that populates the FollowerStatus and FollowingStatus fields of the templateData struct.
+// populateWorkerStatus is a helper function that populates the FollowerStatus and FollowingStatus fields of the templateData struct.
 func (app *application) populateStatusData(data *templateData) {
 	data.StatusData = statusData{
-		FollowerStatus:  app.followStatus,
-		FollowingStatus: app.followingStatus,
-		ProfileStatus:   app.profileStatus,
+		FollowerStatus:    app.followStatus,
+		FollowingStatus:   app.followingStatus,
+		ProfileStatus:     app.profileStatus,
+		ConnectionsStatus: app.connectionsStatus,
 	}
 
 	data.StatusData.NumberOfUsers, _ = models.GetUserCount(app.connection)
 }
 
-//populateTemplateData is a helper function that populates the templateData struct with the data needed to render the templates.
+// populateTemplateData is a helper function that populates the templateData struct with the data needed to render the templates.
 func (app *application) populateTemplateData(r *http.Request, data *templateData) {
 	app.populateStatusData(data)
 	data.Flash = app.sessionManager.PopString(r.Context(), "flash")

@@ -347,7 +347,9 @@ func (app *application) ConnectionsWorker() {
 
 		var currentUser *models.SimpleRequest
 
-		for _, user := range request.follows {
+		app.connectionsStatus = fmt.Sprintf("scraping %s", currentUser.Username)
+
+		for i, user := range request.follows {
 			//if the slice of follows is of followings of a user, that means the user is the followee, then that means the followerID and followerUsername is of the the other users.
 			if request.users == "followings" {
 				currentUser = &models.SimpleRequest{
@@ -363,6 +365,8 @@ func (app *application) ConnectionsWorker() {
 				app.errorLog.Println("Invalid user type")
 				continue
 			}
+
+			app.connectionsStatus = fmt.Sprintf("%s, %d/%d", currentUser.Username, i, len(request.follows))
 
 			//scrapes the user so that you can check for their follower and following count
 			currUser, err := app.scrapeUser(currentUser.Username)
@@ -428,6 +432,8 @@ func (app *application) ConnectionsWorker() {
 		if err != nil {
 			app.errorLog.Println("Error deleting connection request:", err)
 		}
+
+		app.connectionsStatus = "idle"
 
 	}
 
