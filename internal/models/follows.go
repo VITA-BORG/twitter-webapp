@@ -17,7 +17,7 @@ type Follow struct {
 	CollectedAt      time.Time `json:"collected_at"`
 }
 
-// InsertFollow inserts a Follow object into the database.  No checking.
+// InsertFollow inserts a Follow object into the database.
 func InsertFollow(conn *pgxpool.Pool, follow *Follow) error {
 	if FollowExists(conn, follow) {
 		return nil

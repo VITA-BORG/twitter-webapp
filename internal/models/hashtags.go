@@ -12,14 +12,17 @@ type Hashtag struct {
 	Hashtag string `json:"tag"`
 }
 
-//InsertHashtag inserts a Hashtag object into the database.  No checking.
+// InsertHashtag inserts a Hashtag object into the database.
 func InsertHashtag(conn *pgxpool.Pool, hashtag *Hashtag) error {
+	if HashtagExists(conn, hashtag) {
+		return nil
+	}
 	statement := "INSERT INTO hashtags(tag, tweet_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, hashtag.Hashtag, hashtag.TweetID)
 	return err
 }
 
-//HashtagExists checks if a hashtag exists in the database.
+// HashtagExists checks if a hashtag exists in the database.
 func HashtagExists(conn *pgxpool.Pool, hashtag *Hashtag) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM hashtags WHERE tag=$1 AND tweet_id=$2)"

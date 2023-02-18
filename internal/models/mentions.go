@@ -12,15 +12,18 @@ type Mention struct {
 	UserID  int64 `json:"user_id"`
 }
 
-//InsertMention inserts a Mention object into the database.  No checking.
+// InsertMention inserts a Mention object into the database.  No checking.
 func InsertMention(conn *pgxpool.Pool, mention *Mention) error {
+	if MentionExists(conn, mention) {
+		return nil
+	}
 	statement := "INSERT INTO mentions(tweet_id, user_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, mention.TweetID, mention.UserID)
 	return err
 }
 
-//GetMentionByTID returns a Mention object from the database if they exist.  Otherwise, it returns nil.
-//TODO: Return multiple mentions
+// GetMentionByTID returns a Mention object from the database if they exist.  Otherwise, it returns nil.
+// TODO: Return multiple mentions
 func GetMentionByTID(conn *pgxpool.Pool, ID int64) (Mention, error) {
 	var mention Mention
 	var err error
@@ -29,7 +32,7 @@ func GetMentionByTID(conn *pgxpool.Pool, ID int64) (Mention, error) {
 	return mention, err
 }
 
-//MentionExists checks if a mention exists in the database.
+// MentionExists checks if a mention exists in the database.
 func MentionExists(conn *pgxpool.Pool, mention *Mention) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM mentions WHERE tweet_id=$1 AND user_id=$2)"

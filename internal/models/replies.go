@@ -12,14 +12,17 @@ type Reply struct {
 	ReplyID int64 `json:"user_replied_to_id"`
 }
 
-//InsertReply inserts a Reply object into the database.  No checking.
+// InsertReply inserts a Reply object into the database.  No checking.
 func InsertReply(conn *pgxpool.Pool, reply *Reply) error {
+	if ReplyExists(conn, reply) {
+		return nil
+	}
 	statement := "INSERT INTO replies(tweet_id, user_id) VALUES($1, $2)"
 	_, err := conn.Exec(context.Background(), statement, reply.TweetID, reply.ReplyID)
 	return err
 }
 
-//GetReplyByID returns a Reply object from the database if they exist.  Otherwise, it returns nil.
+// GetReplyByID returns a Reply object from the database if they exist.  Otherwise, it returns nil.
 func GetReplyByID(conn *pgxpool.Pool) (Reply, error) {
 	var reply Reply
 	var err error

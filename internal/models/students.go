@@ -12,14 +12,14 @@ type Student struct {
 	UserID   int64 `json:"user_id"`
 }
 
-//InsertStudent inserts a Student object into the database.  No checking.
+// InsertStudent inserts a Student object into the database.  No checking.
 func InsertStudent(conn *pgxpool.Pool, student *Student) error {
 	statement := "INSERT INTO students(school_id, cohort, user_id) VALUES($1, $2, $3)"
 	_, err := conn.Exec(context.Background(), statement, student.SchoolID, student.Cohort, student.UserID)
 	return err
 }
 
-//GetStudentByID returns a Student object from the database if they exist.  Otherwise, it returns nil.
+// GetStudentByID returns a Student object from the database if they exist.  Otherwise, it returns nil.
 func GetStudentByID(conn *pgxpool.Pool, ID int64) (*Student, error) {
 	var student Student
 	var err error
@@ -28,7 +28,7 @@ func GetStudentByID(conn *pgxpool.Pool, ID int64) (*Student, error) {
 	return &student, err
 }
 
-//GetStudentSchoolIDByID returns the school ID of a student from the database if they exist.  Otherwise, it returns nil.
+// GetStudentSchoolIDByID returns the school ID of a student from the database if they exist.  Otherwise, it returns nil.
 func GetStudentSchoolIDByID(conn *pgxpool.Pool, ID int64) (int, error) {
 	var schoolID int
 	var err error
@@ -37,7 +37,7 @@ func GetStudentSchoolIDByID(conn *pgxpool.Pool, ID int64) (int, error) {
 	return schoolID, err
 }
 
-//StudentExists checks if a student exists in the database.
+// StudentExists checks if a student exists in the database.
 func StudentExists(conn *pgxpool.Pool, ID int64) bool {
 	var exists bool
 	statement := "SELECT EXISTS(SELECT 1 FROM students WHERE user_id=$1)"

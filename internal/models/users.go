@@ -29,8 +29,11 @@ type User struct {
 
 var Format string = "2006-01-02"
 
-// InsertUser inserts a User object into the database.  No checking.
+// InsertUser inserts a User object into the database.
 func InsertUser(conn *pgxpool.Pool, user *User) error {
+	if UserIDExists(conn, user.ID) {
+		return nil
+	}
 	statement := "INSERT INTO users(id, profile_name, handle, gender, is_person, joined, bio, location, verified, avatar, tweets, likes, media, following, followers, collected_at, is_participant) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)"
 	_, err := conn.Exec(context.Background(), statement, user.ID, user.ProfileName, user.Handle, user.Gender, user.IsPerson, user.Joined, user.Bio, user.Location, user.Verified, user.Avatar, user.Tweets, user.Likes, user.Media, user.Following, user.Followers, user.CollectedAt, user.IsParticipant)
 	return err

@@ -22,7 +22,7 @@ type Tweet struct {
 	CollectedAt    *time.Time `json:"collected_at"`
 }
 
-// InsertTweet inserts a Tweet object into the database.  No checking.
+// InsertTweet inserts a Tweet object into the database.
 func InsertTweet(conn *pgxpool.Pool, tweet *Tweet) error {
 	if TweetExists(conn, tweet.ID) {
 		return nil
