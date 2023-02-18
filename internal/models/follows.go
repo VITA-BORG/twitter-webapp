@@ -19,6 +19,9 @@ type Follow struct {
 
 // InsertFollow inserts a Follow object into the database.  No checking.
 func InsertFollow(conn *pgxpool.Pool, follow *Follow) error {
+	if FollowExists(conn, follow) {
+		return nil
+	}
 	statement := "INSERT INTO follows(follower_id, followee_id, created_at, collected_at) VALUES($1, $2, $3, $4)"
 	_, err := conn.Exec(context.Background(), statement, follow.FollowerID, follow.FolloweeID, follow.CreatedAt, follow.CollectedAt)
 	return err
