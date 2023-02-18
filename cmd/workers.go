@@ -218,6 +218,18 @@ func (app *application) FollowWorker() {
 	for user := range app.followChan {
 		app.followingStatus = fmt.Sprintf("scraping %s", user.Username)
 
+		//check number of follows
+		ucheck, err := models.GetUserByID(app.connection, user.UID)
+		if err != nil {
+			app.errorLog.Println("Error getting user by id:", err)
+			continue
+		}
+		if ucheck.Following > app.followLimit {
+			app.infoLog.Println("User has too many following, not scraping following")
+			app.followingStatus = "idle"
+			continue
+		}
+
 		app.infoLog.Println("Scraping followings for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
@@ -240,7 +252,7 @@ func (app *application) FollowWorker() {
 
 		app.infoLog.Printf("%d follows recieved for user: %s", len(follows), user.Username)
 
-		err := app.updateFollows(follows)
+		err = app.updateFollows(follows)
 		if err != nil {
 			app.errorLog.Println("Error updating followings:", err)
 			continue
@@ -256,6 +268,7 @@ func (app *application) FollowWorker() {
 		}
 
 		BackupID, err := models.InsertConnectionRequest(app.connection, connectionRequestBackup)
+		app.infoLog.Println("Backing up connection request with BackupID:", BackupID)
 		if err != nil {
 			app.errorLog.Println("Error backing up connection request:", err)
 		}
@@ -285,6 +298,18 @@ func (app *application) FollowerWorker() {
 	for user := range app.followerChan {
 		app.followStatus = fmt.Sprintf("scraping %s", user.Username)
 
+		//check number of follows
+		ucheck, err := models.GetUserByID(app.connection, user.UID)
+		if err != nil {
+			app.errorLog.Println("Error getting user by id:", err)
+			continue
+		}
+		if ucheck.Followers > app.followLimit {
+			app.infoLog.Println("User has too many followers, not scraping followers")
+			app.followingStatus = "idle"
+			continue
+		}
+
 		app.infoLog.Println("Scraping followers for user:", user.UID)
 
 		upstreamChan := make(chan []*models.Follow)
@@ -306,7 +331,7 @@ func (app *application) FollowerWorker() {
 			continue
 		}
 		app.infoLog.Printf("%d followers recieved for user: %s", len(followers), user.Username)
-		err := app.updateFollows(followers)
+		err = app.updateFollows(followers)
 		if err != nil {
 			app.errorLog.Println("Error updating followers:", err)
 			continue
@@ -347,7 +372,16 @@ func (app *application) ConnectionsWorker() {
 
 		var currentUser *models.SimpleRequest
 
-		app.connectionsStatus = fmt.Sprintf("scraping %s", currentUser.Username)
+		if len(request.follows) > app.followLimit {
+			app.infoLog.Println("User has too many follows, not scraping connections")
+			err := models.DeleteConnectionRequest(app.connection, request.ID)
+			app.infoLog.Println("Deleting connection request with ID:", request.ID)
+			if err != nil {
+				app.errorLog.Println("Error deleting connection request:", err)
+			}
+			app.connectionsStatus = "idle"
+			continue
+		}
 
 		for i, user := range request.follows {
 			//if the slice of follows is of followings of a user, that means the user is the followee, then that means the followerID and followerUsername is of the the other users.
@@ -356,17 +390,17 @@ func (app *application) ConnectionsWorker() {
 					UID:      user.FolloweeID,
 					Username: user.FolloweeUsername,
 				}
+				app.connectionsStatus = fmt.Sprintf("%s, %d/%d", user.FollowerUsername, i, len(request.follows))
 			} else if request.users == "followers" {
 				currentUser = &models.SimpleRequest{
 					UID:      user.FollowerID,
 					Username: user.FollowerUsername,
 				}
+				app.connectionsStatus = fmt.Sprintf("%s, %d/%d", user.FolloweeUsername, i, len(request.follows))
 			} else {
 				app.errorLog.Println("Invalid user type")
 				continue
 			}
-
-			app.connectionsStatus = fmt.Sprintf("%s, %d/%d", currentUser.Username, i, len(request.follows))
 
 			//scrapes the user so that you can check for their follower and following count
 			currUser, err := app.scrapeUser(currentUser.Username)
@@ -429,6 +463,7 @@ func (app *application) ConnectionsWorker() {
 		}
 
 		err := models.DeleteConnectionRequest(app.connection, request.ID)
+		app.infoLog.Println("Deleting connection request with ID:", request.ID)
 		if err != nil {
 			app.errorLog.Println("Error deleting connection request:", err)
 		}
